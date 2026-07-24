@@ -1,0 +1,12 @@
+---
+// Contact — form + direct channels (design/Site.dc.html, #contact).
+// Form backend (e.g. Formspree/Resend) is wired at deploy time.
+import Base from '../layouts/Base.astro';
+import { SITE } from '../data/site';
+---
+
+<Base title="Contact">
+  <h1>contact</h1>
+  <p>Stub — contact form and direct channels per design/Site.dc.html.</p>
+  <p><a href={`mailto:${SITE.email}`}>{SITE.email}</a></p>
+</Base>

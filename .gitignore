@@ -1,0 +1,11 @@
+# design mockups — local source of truth, never committed
+design/
+
+# dependencies & build output
+node_modules/
+dist/
+.astro/
+
+# os / local
+.DS_Store
+*.local
