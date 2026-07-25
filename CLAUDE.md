@@ -5,15 +5,21 @@ interactive canvas "flight deck" home and calm, readable content pages.
 
 ## Stack
 
-- Astro + MDX, static output (no adapter — host decided later)
+- Astro + MDX, static output (no adapter)
 - pnpm, single package (no workspace)
 - Canvas games are **vanilla canvas — no game/animation libraries**
+- Hosting: Cloudflare Workers static assets (`wrangler.jsonc`), free plan
+  only — auto-deploys from `main` via Cloudflare's git integration.
+  Static requests are unlimited; only future Functions (contact form)
+  count against the 100k/day free tier.
 
 ## Commands
 
 - `pnpm dev` — dev server
 - `pnpm build` — production build (run this to verify changes)
 - `pnpm preview` — preview the build
+- `pnpm deploy` — build + manual deploy via wrangler (needs `wrangler login`;
+  normally unnecessary — pushes to `main` deploy automatically)
 
 ## Designs (`design/` — gitignored, never commit, never delete)
 

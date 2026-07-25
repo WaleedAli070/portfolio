@@ -1,0 +1,10 @@
+// Cloudflare Workers config — assets-only (pure static site, no worker code).
+// The contact-form function will add a "main" entry here when it's built.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "portfolio",
+  "compatibility_date": "2026-07-25",
+  "assets": {
+    "directory": "./dist"
+  }
+}
