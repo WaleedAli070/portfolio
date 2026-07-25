@@ -1,6 +1,7 @@
 ---
-// Blog post — rendered MDX (design/Site.dc.html, post view).
-import Base from '../../layouts/Base.astro';
+// Blog post — rendered MDX with article prose styling
+// (design/Site.dc.html, post view).
+import Site from '../../layouts/Site.astro';
 import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -10,9 +11,134 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+
+const READ_WPM = 220;
+const readTime = `${Math.max(1, Math.round((post.body ?? '').split(/\s+/).length / READ_WPM))} min read`;
+const date = post.data.date.toISOString().slice(0, 10);
 ---
 
-<Base title={post.data.title}>
+<Site title={post.data.title} path={`~/blog/${post.id}`} description={post.data.excerpt}>
+  <a class="back" href="/blog">◂ all posts</a>
+  <div class="meta">{date} &nbsp;·&nbsp; {readTime}</div>
   <h1>{post.data.title}</h1>
-  <Content />
-</Base>
+  <div class="tags">
+    {post.data.tags.map((t) => <span class="tag">#{t}</span>)}
+  </div>
+  <article class="prose">
+    <Content />
+  </article>
+</Site>
+
+<style>
+  .back {
+    display: inline-block;
+    font-size: 12.5px;
+    color: var(--cyan);
+    margin-bottom: 22px;
+  }
+  .meta {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4.2vw, 42px);
+    line-height: 1.1;
+    margin: 0 0 16px;
+    font-weight: 600;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .tags {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 6px;
+    margin-bottom: 32px;
+  }
+  .tag {
+    font-size: 10.5px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--cyan-soft);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+  }
+
+  .prose {
+    font-size: 15.5px;
+    line-height: 1.85;
+    color: #b3c1d4;
+    max-width: 68ch;
+  }
+  .prose :global(p) {
+    margin: 0 0 20px;
+    text-wrap: pretty;
+  }
+  .prose :global(h2) {
+    font-family: var(--font-display);
+    font-size: 24px;
+    color: var(--text-bright);
+    margin: 36px 0 14px;
+    font-weight: 600;
+  }
+  .prose :global(h3) {
+    font-family: var(--font-display);
+    font-size: 19px;
+    color: var(--text-bright);
+    margin: 28px 0 12px;
+    font-weight: 600;
+  }
+  .prose :global(blockquote) {
+    margin: 0 0 20px;
+    padding: 12px 20px;
+    border-left: 3px solid var(--green);
+    background: rgba(52, 211, 153, 0.06);
+    color: #c6d3e3;
+    font-style: italic;
+  }
+  .prose :global(blockquote p) {
+    margin: 0;
+  }
+  .prose :global(pre) {
+    margin: 0 0 22px;
+    padding: 16px 18px;
+    background: #0a0f18 !important;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .prose :global(:not(pre) > code) {
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid var(--border-chip);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.85em;
+    color: #9fe8c7;
+  }
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin: 0 0 22px;
+    padding-left: 22px;
+  }
+  .prose :global(li) {
+    margin-bottom: 4px;
+  }
+  .prose :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .prose :global(img) {
+    max-width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .prose :global(hr) {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+</style>

@@ -1,0 +1,118 @@
+/* Design tokens + global chrome, ported from design/Site.dc.html. */
+:root {
+  --bg: #070b12;
+  --bg-deep: #050810;
+  --bg-panel: rgba(11, 17, 27, 0.66);
+  --bg-bar: rgba(9, 14, 22, 0.82);
+  --border: #1b2a3d;
+  --border-soft: #182536;
+  --border-dim: #16222f;
+  --border-chip: #22303f;
+
+  --text: #d7e2f0;
+  --text-bright: #eaf2fb;
+  --text-body: #a9b8cc;
+  --text-soft: #93a2b6;
+  --text-muted: #8b9bb0;
+  --text-label: #7f8fa3;
+  --text-faint: #647689;
+  --text-ghost: #5f7186;
+
+  --green: #34d399;
+  --cyan: #22d3ee;
+  --cyan-soft: #7fd6e6;
+  --amber: #fbbf24;
+  --violet: #a78bfa;
+  --pink: #f472b6;
+  --red: #f87171;
+
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: 'Space Grotesk', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+a {
+  color: var(--cyan);
+  text-decoration: none;
+}
+a:hover {
+  color: #67e8f9;
+}
+
+::selection {
+  background: rgba(52, 211, 153, 0.3);
+  color: #eafff5;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #223247;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2c4058;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: var(--font-mono);
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

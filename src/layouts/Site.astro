@@ -1,0 +1,294 @@
+---
+// Terminal chrome for content pages (design/Site.dc.html): titlebar with
+// traffic lights, nav tabs, scrollable content, status footer, and an
+// animated starfield behind everything.
+import Base from './Base.astro';
+import { SITE } from '../data/site';
+
+interface Props {
+  title: string;
+  /** Terminal-style path shown in the titlebar/footer, e.g. "~/about". */
+  path: string;
+  description?: string;
+}
+
+const { title, path, description } = Astro.props;
+
+const NAV = [
+  { label: 'about.me', href: '/about' },
+  { label: 'projects', href: '/projects' },
+  { label: 'blog', href: '/blog' },
+  { label: 'contact', href: '/contact' },
+];
+const current = Astro.url.pathname.replace(/\/$/, '') || '/';
+const isActive = (href: string) => current === href || current.startsWith(`${href}/`);
+---
+
+<Base title={title} description={description}>
+  <div class="screen">
+    <canvas id="starfield" aria-hidden="true"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <div class="frame">
+      <header class="titlebar">
+        <span class="light red"></span>
+        <span class="light amber"></span>
+        <span class="light green"></span>
+        <span class="prompt">pilot@portfolio: {path}</span>
+        <span class="spacer"></span>
+        <a class="btn violet" href="/">◂ flight deck</a>
+        <a class="btn green" href="/resume.pdf" download>wget resume.pdf</a>
+      </header>
+
+      <nav class="tabs" aria-label="Sections">
+        {
+          NAV.map((item) => (
+            <a class:list={['tab', { active: isActive(item.href) }]} href={item.href}>
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
+
+      <main class="content">
+        <div class="container">
+          <slot />
+        </div>
+      </main>
+
+      <footer class="statusbar">
+        <span class="online"><span class="dot"></span>online</span>
+        <span>{path}</span>
+        <span>{SITE.version} — portfolio</span>
+      </footer>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .screen {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  #starfield {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+    opacity: 0.55;
+  }
+  .vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(130% 130% at 50% 0%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.6) 100%);
+  }
+  .frame {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 18px;
+    background: var(--bg-bar);
+    border-bottom: 1px solid var(--border-soft);
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+  }
+  .light {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .light.red {
+    background: var(--red);
+  }
+  .light.amber {
+    background: var(--amber);
+  }
+  .light.green {
+    background: var(--green);
+  }
+  .prompt {
+    margin-left: 8px;
+    font-size: 12.5px;
+    color: var(--text-label);
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .spacer {
+    flex: 1;
+  }
+  .btn {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: background 0.18s;
+  }
+  .btn.violet {
+    color: var(--violet);
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    background: rgba(167, 139, 250, 0.08);
+  }
+  .btn.violet:hover {
+    background: rgba(167, 139, 250, 0.18);
+    color: var(--violet);
+  }
+  .btn.green {
+    color: var(--green);
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    background: rgba(52, 211, 153, 0.08);
+  }
+  .btn.green:hover {
+    background: rgba(52, 211, 153, 0.18);
+    color: var(--green);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 18px;
+    background: rgba(9, 14, 22, 0.55);
+    border-bottom: 1px solid #131f2e;
+    backdrop-filter: blur(6px);
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 12px 16px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    transition: color 0.15s;
+  }
+  .tab:hover {
+    color: var(--text-bright);
+  }
+  .tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+
+  .content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 44px 24px 80px;
+    animation: fadeUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 18px;
+    background: var(--bg-bar);
+    border-top: 1px solid var(--border-soft);
+    backdrop-filter: blur(8px);
+    font-size: 11px;
+    color: var(--text-faint);
+    flex-shrink: 0;
+  }
+  .statusbar > span:not(.online) {
+    color: var(--text-ghost);
+  }
+  .online {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulseDot 2s ease-in-out infinite;
+  }
+</style>
+
+<script>
+  // Drifting, twinkling starfield (ported from design/Site.dc.html).
+  const canvas = document.getElementById('starfield') as HTMLCanvasElement | null;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (canvas) {
+    const ctx = canvas.getContext('2d')!;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let W = 0;
+    let H = 0;
+    let stars: { x: number; y: number; z: number; sp: number; tw: number }[] = [];
+
+    const size = () => {
+      const r = canvas.getBoundingClientRect();
+      W = r.width;
+      H = r.height;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      stars = [];
+      const n = Math.floor((W * H) / 7000);
+      for (let i = 0; i < n; i++) {
+        stars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          z: Math.random() * 0.7 + 0.3,
+          sp: Math.random() * 0.16 + 0.03,
+          tw: Math.random() * Math.PI * 2,
+        });
+      }
+    };
+    size();
+    window.addEventListener('resize', size);
+
+    let f = 0;
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      for (const s of stars) {
+        s.y += s.sp;
+        if (s.y > H) {
+          s.y = 0;
+          s.x = Math.random() * W;
+        }
+        const tw = 0.4 + 0.6 * Math.abs(Math.sin(s.tw + f * 0.015));
+        ctx.globalAlpha = s.z * tw * 0.8;
+        ctx.fillStyle = '#aecdf5';
+        ctx.fillRect(s.x, s.y, s.z * 1.6, s.z * 1.6);
+      }
+      ctx.globalAlpha = 1;
+    };
+
+    if (reduceMotion) {
+      draw(); // static stars, no animation
+    } else {
+      const loop = () => {
+        f++;
+        draw();
+        requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    }
+  }
+</script>

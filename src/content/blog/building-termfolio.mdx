@@ -1,0 +1,32 @@
+---
+title: 'Building termfolio: a terminal in space'
+date: 2026-07-25
+tags: ['meta', 'frontend']
+excerpt: 'Why my portfolio is a spaceship cockpit, and the constraints that shaped how it was built — Astro, MDX, vanilla canvas, and a zero-dollar hosting bill.'
+draft: false
+---
+
+This site is a small rebellion against the standard portfolio template: a
+terminal window floating in space, with a flight deck for a home page and
+mini-games instead of a hero section.
+
+## The constraints
+
+Three rules shaped every technical decision here:
+
+- **Everything must have a purpose.** No speculative abstractions, no
+  component libraries for four pages, no dependencies without a clear need.
+- **The games stay dependency-free.** The flight deck and lander are vanilla
+  `<canvas>` — no game engine, no physics library. They should load fast and
+  keep working in ten years.
+- **Hosting costs exactly zero.** Static output on Cloudflare's free tier,
+  where static requests are unlimited. The only server-side code will be a
+  tiny contact-form function.
+
+## The stack
+
+Astro renders the whole site to static HTML, with MDX powering this blog.
+The interactive parts — the starfield behind this page, the project modals,
+the tag filters — are small vanilla scripts, each a few dozen lines.
+
+More on the flight deck once it ships.

@@ -1,22 +1,239 @@
 ---
-// Blog index — post list with tag + year filters (design/Site.dc.html, #blog).
-import Base from '../../layouts/Base.astro';
+// Blog index — post cards with client-side tag + year filters
+// (design/Site.dc.html, #blog).
+import Site from '../../layouts/Site.astro';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
+
+const READ_WPM = 220;
+const readTime = (body: string | undefined) =>
+  `${Math.max(1, Math.round((body ?? '').split(/\s+/).length / READ_WPM))} min read`;
+
+const fmtDate = (d: Date) =>
+  d.toISOString().slice(0, 10);
+
+const tags = [...new Set(posts.flatMap((p) => p.data.tags))];
+const years = [...new Set(posts.map((p) => String(p.data.date.getFullYear())))].sort().reverse();
 ---
 
-<Base title="Blog">
-  <h1>blog</h1>
-  <ul>
+<Site title="Blog" path="~/blog">
+  <div class="cmd">$ cat blog/*.md</div>
+  <h1>Writing</h1>
+  <p class="lede">Notes on distributed systems, infrastructure, and leading engineering teams.</p>
+
+  <div class="filters">
+    <button class="pill active" data-tag="all">all</button>
     {
-      posts.map((post) => (
-        <li>
-          <a href={`/blog/${post.id}/`}>{post.data.title}</a>
-        </li>
+      tags.map((t) => (
+        <button class="pill" data-tag={t}>
+          #{t}
+        </button>
       ))
     }
-  </ul>
-</Base>
+    <span class="gap"></span>
+    <span class="year-wrap">
+      <select id="year" aria-label="Filter by year">
+        <option value="all">all</option>
+        {years.map((y) => <option value={y}>{y}</option>)}
+      </select>
+      <span class="caret">▾</span>
+    </span>
+  </div>
+
+  <div class="posts">
+    {
+      posts.map((post) => (
+        <a
+          class="post"
+          href={`/blog/${post.id}/`}
+          data-tags={post.data.tags.join(',')}
+          data-year={post.data.date.getFullYear()}
+        >
+          <div class="post-meta">
+            {fmtDate(post.data.date)} &nbsp;·&nbsp; {readTime(post.body)}
+          </div>
+          <div class="post-title">{post.data.title}</div>
+          <p class="post-excerpt">{post.data.excerpt}</p>
+          <div class="post-tags">
+            {post.data.tags.map((t) => (
+              <span class="tag">#{t}</span>
+            ))}
+          </div>
+        </a>
+      ))
+    }
+    <div class="empty" hidden>
+      no posts match these filters — try widening the topic or time range.
+    </div>
+  </div>
+</Site>
+
+<style>
+  .cmd {
+    font-size: 13px;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 0 0 8px;
+    font-weight: 600;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0 0 24px;
+    max-width: 60ch;
+  }
+
+  .filters {
+    display: flex;
+    align-items: center;
+    flex-flow: row wrap;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .pill {
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: rgba(148, 163, 184, 0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border-chip);
+    transition: all 0.15s;
+  }
+  .pill.active {
+    background: rgba(52, 211, 153, 0.14);
+    color: var(--green);
+    border-color: rgba(52, 211, 153, 0.4);
+  }
+  .gap {
+    flex: 1;
+    min-width: 12px;
+  }
+  .year-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  #year {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(148, 163, 184, 0.05);
+    color: #c6d3e3;
+    border: 1px solid var(--border-chip);
+    border-radius: 20px;
+    padding: 6px 30px 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    color-scheme: dark;
+    outline: none;
+  }
+  .caret {
+    position: absolute;
+    right: 12px;
+    pointer-events: none;
+    color: var(--text-muted);
+    font-size: 9px;
+  }
+
+  .posts {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .post {
+    display: block;
+    background: rgba(11, 17, 27, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
+    color: inherit;
+  }
+  .post:hover {
+    border-color: rgba(34, 211, 238, 0.4);
+    transform: translateY(-2px);
+    color: inherit;
+  }
+  .post-meta {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+  }
+  .post-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 8px;
+    text-wrap: balance;
+  }
+  .post-excerpt {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-soft);
+    margin: 0 0 14px;
+    text-wrap: pretty;
+  }
+  .post-tags {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 6px;
+  }
+  .tag {
+    font-size: 10.5px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--cyan-soft);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+  }
+  .empty {
+    text-align: center;
+    padding: 36px;
+    color: var(--text-faint);
+    font-size: 13.5px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+  }
+</style>
+
+<script>
+  const pills = document.querySelectorAll<HTMLButtonElement>('.pill');
+  const yearSel = document.getElementById('year') as HTMLSelectElement;
+  const posts = document.querySelectorAll<HTMLElement>('.post');
+  const empty = document.querySelector<HTMLElement>('.empty')!;
+  let tag = 'all';
+
+  const apply = () => {
+    const year = yearSel.value;
+    let visible = 0;
+    for (const post of posts) {
+      const tags = (post.dataset.tags ?? '').split(',');
+      const show =
+        (tag === 'all' || tags.includes(tag)) && (year === 'all' || post.dataset.year === year);
+      post.hidden = !show;
+      if (show) visible++;
+    }
+    empty.hidden = visible > 0;
+  };
+
+  for (const pill of pills) {
+    pill.addEventListener('click', () => {
+      tag = pill.dataset.tag ?? 'all';
+      pills.forEach((p) => p.classList.toggle('active', p === pill));
+      apply();
+    });
+  }
+  yearSel.addEventListener('change', apply);
+</script>

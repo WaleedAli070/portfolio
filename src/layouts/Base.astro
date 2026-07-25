@@ -1,14 +1,17 @@
 ---
-// Bare HTML shell. Terminal chrome, fonts, and global styles land here
-// when the design is implemented (see design/Site.dc.html).
+// Shared HTML shell: fonts, global styles, meta. Terminal chrome for
+// content pages lives in Site.astro; the flight deck home composes this
+// directly.
 import { SITE } from '../data/site';
+import '../styles/global.css';
 
 interface Props {
   title?: string;
+  description?: string;
 }
 
-const { title } = Astro.props;
-const pageTitle = title ? `${title} · ${SITE.name}` : SITE.name;
+const { title, description = SITE.description } = Astro.props;
+const pageTitle = title ? `${title} · ${SITE.name}` : SITE.title;
 ---
 
 <!doctype html>
@@ -18,6 +21,13 @@ const pageTitle = title ? `${title} · ${SITE.name}` : SITE.name;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <slot />

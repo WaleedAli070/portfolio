@@ -28,7 +28,7 @@ It is intentionally excluded from git. Before building any UI, open the
 relevant file (see `.claude/skills/implementing-from-designs/`):
 
 | Design file | Implements |
-|---|---|
+| --- | --- |
 | `design/Home.dc.html` | `/` — flight-deck canvas game (boot, ship, asteroids, nav nodes, lander) |
 | `design/Site.dc.html` | `/about`, `/projects`, `/blog`, `/blog/[slug]`, `/contact` |
 | `design/uploads/portfolio.html` | earlier draft — superseded, reference only |
@@ -40,10 +40,23 @@ Fonts: JetBrains Mono (body/UI), Space Grotesk (headings).
 ## Structure
 
 - `src/pages/` — routes (the mockups' hash-nav becomes real routes here)
-- `src/layouts/Base.astro` — shared HTML shell
+- `src/layouts/Base.astro` — bare HTML shell (fonts, global css, meta)
+- `src/layouts/Site.astro` — terminal chrome for content pages (titlebar,
+  nav tabs, status footer, starfield); the flight deck home composes
+  `Base` directly
+- `src/styles/global.css` — design tokens as CSS vars + keyframes; pages
+  use scoped `<style>` referencing those vars
 - `src/content/blog/` + `src/content.config.ts` — MDX blog collection
-- `src/data/site.ts` — site-wide metadata (name, email, links)
-- `TODO:` markers in content/data are placeholders awaiting real values
+- `src/data/` — all real content: `site.ts` (identity/links),
+  `career.ts` (bio/timeline/skills), `projects.ts` — content never lives
+  in components
+- `public/resume.pdf` — copy of the real resume; replace when it updates
+- Interactivity is small vanilla `<script>` blocks per page (modals via
+  native `<dialog>`, blog filters, mailto contact form — swap to a
+  Cloudflare Function later)
+- Status: content pages match the design; the `/` canvas game (flight
+  deck + lander per `design/Home.dc.html`) is still an interim static
+  screen
 
 ## Principles
 

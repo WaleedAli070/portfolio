@@ -1,12 +1,209 @@
 ---
 // Contact — form + direct channels (design/Site.dc.html, #contact).
-// Form backend (e.g. Formspree/Resend) is wired at deploy time.
-import Base from '../layouts/Base.astro';
+// The form composes a mailto: draft until the Cloudflare Function exists.
+import Site from '../layouts/Site.astro';
 import { SITE } from '../data/site';
+
+const channels = [
+  { label: 'EMAIL', value: SITE.email, href: `mailto:${SITE.email}`, sigil: '@', color: 'var(--green)' },
+  { label: 'GITHUB', value: SITE.githubLabel, href: SITE.github, sigil: '#', color: 'var(--cyan)' },
+  { label: 'LINKEDIN', value: SITE.linkedinLabel, href: SITE.linkedin, sigil: '>', color: 'var(--violet)' },
+  { label: 'LOCATION', value: SITE.location, href: '#', sigil: '*', color: 'var(--amber)' },
+];
 ---
 
-<Base title="Contact">
-  <h1>contact</h1>
-  <p>Stub — contact form and direct channels per design/Site.dc.html.</p>
-  <p><a href={`mailto:${SITE.email}`}>{SITE.email}</a></p>
-</Base>
+<Site title="Contact" path="~/contact">
+  <div class="cmd">$ ./contact --send</div>
+  <h1>Get in touch</h1>
+  <p class="lede">
+    Open to staff / architecture / EM conversations, interesting infrastructure problems, and the
+    occasional side quest. Email is fastest — I usually reply within a day or two.
+  </p>
+
+  <div class="cols">
+    <div class="panel">
+      <form id="contact-form" data-email={SITE.email}>
+        <div class="field">
+          <label for="f-name">name</label>
+          <input id="f-name" name="name" required type="text" placeholder="Ada Lovelace" />
+        </div>
+        <div class="field">
+          <label for="f-subject">subject</label>
+          <input id="f-subject" name="subject" type="text" placeholder="a systems problem worth solving" />
+        </div>
+        <div class="field">
+          <label for="f-message">message</label>
+          <textarea id="f-message" name="message" required placeholder="tell me what you're building..."></textarea>
+        </div>
+        <button type="submit">send message →</button>
+        <div class="note">Opens a draft in your mail client — or just email me directly.</div>
+      </form>
+    </div>
+
+    <div class="channels">
+      <div class="label">direct channels</div>
+      {
+        channels.map((c) => (
+          <a class="channel" href={c.href}>
+            <span class="sigil" style={`color: ${c.color}`}>
+              {c.sigil}
+            </span>
+            <span class="channel-text">
+              <span class="channel-label">{c.label}</span>
+              <span class="channel-value">{c.value}</span>
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</Site>
+
+<style>
+  .cmd {
+    font-size: 13px;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 0 0 8px;
+    font-weight: 600;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    margin: 0 0 30px;
+    max-width: 58ch;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 720px) {
+    .cols {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  label {
+    font-size: 11px;
+    color: var(--text-label);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  input,
+  textarea {
+    background: rgba(7, 11, 18, 0.8);
+    border: 1px solid var(--border-chip);
+    border-radius: 8px;
+    padding: 11px 13px;
+    color: #e2e8f0;
+    font-size: 14px;
+    outline: none;
+  }
+  input:focus,
+  textarea:focus {
+    border-color: var(--green);
+  }
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+  button[type='submit'] {
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--green);
+    border: 1px solid rgba(52, 211, 153, 0.45);
+    background: rgba(52, 211, 153, 0.1);
+    padding: 12px 18px;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+  button[type='submit']:hover {
+    background: rgba(52, 211, 153, 0.2);
+  }
+  .note {
+    font-size: 11px;
+    color: var(--text-ghost);
+    line-height: 1.5;
+  }
+
+  .channels {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .label {
+    font-size: 11px;
+    color: var(--text-ghost);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .channel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 9px;
+    border: 1px solid var(--border-dim);
+    background: rgba(11, 17, 27, 0.5);
+    margin-bottom: 8px;
+    transition: border-color 0.18s;
+  }
+  .channel:hover {
+    border-color: #2c4058;
+  }
+  .sigil {
+    font-size: 13px;
+    width: 14px;
+  }
+  .channel-text {
+    display: flex;
+    flex-direction: column;
+  }
+  .channel-label {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+  }
+  .channel-value {
+    font-size: 13px;
+    color: #c6d3e3;
+  }
+</style>
+
+<script>
+  const form = document.getElementById('contact-form') as HTMLFormElement;
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = new FormData(form);
+    const subject = String(data.get('subject') || 'Hello from your portfolio');
+    const body = `${data.get('message')}\n\n— ${data.get('name')}`;
+    const email = form.dataset.email;
+    location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
+</script>

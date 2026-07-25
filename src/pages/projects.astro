@@ -1,10 +1,441 @@
 ---
-// Projects — company (NDA) + personal cards with detail modals
-// (design/Site.dc.html, #projects).
-import Base from '../layouts/Base.astro';
+// Projects — company + personal card grids with native <dialog> detail
+// modals (design/Site.dc.html, #projects).
+import Site from '../layouts/Site.astro';
+import { COMPANY_PROJECTS, PERSONAL_PROJECTS, type Project } from '../data/projects';
+
+const ALL: Project[] = [...COMPANY_PROJECTS, ...PERSONAL_PROJECTS];
 ---
 
-<Base title="Projects">
-  <h1>projects</h1>
-  <p>Stub — company and personal project cards per design/Site.dc.html.</p>
-</Base>
+<Site title="Projects" path="~/projects">
+  <div class="cmd">$ ls -la projects/</div>
+  <h1>Selected work</h1>
+  <p class="lede">
+    Company work is anonymized where it's under NDA — happy to go deeper in a conversation.
+    Personal projects link to code and live demos. Tap any card for details.
+  </p>
+
+  <div class="divider">company work<span class="rule"></span></div>
+  <div class="grid">
+    {
+      COMPANY_PROJECTS.map((p) => (
+        <button class="card company" data-open={p.id}>
+          <span class="card-top">
+            <span class="card-org">{p.org}</span>
+            {p.nda && <span class="nda">◆ NDA</span>}
+          </span>
+          <span class="card-name violet">{p.name}</span>
+          <span class="card-desc">{p.desc}</span>
+          <span class="card-tags">
+            {p.tags.map((t) => (
+              <span class="tag">{t}</span>
+            ))}
+          </span>
+          <span class="card-cta" style="color: var(--violet)">view details →</span>
+        </button>
+      ))
+    }
+  </div>
+
+  <div class="divider spaced">personal projects<span class="rule"></span></div>
+  <div class="grid">
+    {
+      PERSONAL_PROJECTS.map((p) => (
+        <button class="card personal" data-open={p.id}>
+          <span class="card-top">
+            <span class="card-year">{p.year}</span>
+            <span class="oss">open source</span>
+          </span>
+          <span class="card-name cyan">{p.name}</span>
+          <span class="card-desc">{p.desc}</span>
+          <span class="card-tags">
+            {p.tags.map((t) => (
+              <span class="tag">{t}</span>
+            ))}
+          </span>
+          <span class="card-cta" style="color: var(--green)">view details →</span>
+        </button>
+      ))
+    }
+  </div>
+
+  {
+    ALL.map((p) => (
+      <dialog id={`project-${p.id}`}>
+        <div class="modal-head">
+          <div class="kind">{p.org ? `Company work · ${p.org}` : 'Personal project'}</div>
+          <button class="close" data-close autofocus aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <h2>{p.name}</h2>
+        <div class="modal-meta">
+          <span>{p.role}</span>
+          <span class="sep">|</span>
+          <span>{p.period}</span>
+        </div>
+        {p.nda && (
+          <div class="nda-note">
+            ◆ Under NDA — company and identifying specifics are anonymized. Details available on
+            request.
+          </div>
+        )}
+        <div class="summary">
+          {p.summary.map((para) => (
+            <p>{para}</p>
+          ))}
+        </div>
+        <div class="label">highlights</div>
+        <div class="highlights">
+          {p.highlights.map((h) => (
+            <div class="hl">
+              <span class="hl-mark">›</span>
+              <span>{h}</span>
+            </div>
+          ))}
+        </div>
+        <div class="label">stack</div>
+        <div class="stack">
+          {p.stack.map((s) => (
+            <span class="stack-tag">{s}</span>
+          ))}
+        </div>
+        {(p.repo || p.live) && (
+          <div class="links">
+            {p.repo && (
+              <a class="link green" href={p.repo}>
+                view code →
+              </a>
+            )}
+            {p.live && (
+              <a class="link cyan" href={p.live}>
+                live demo ↗
+              </a>
+            )}
+          </div>
+        )}
+        {p.org && (
+          <div class="company-note">
+            No public code for company work — reach out and I'll walk you through the architecture.
+          </div>
+        )}
+      </dialog>
+    ))
+  }
+</Site>
+
+<style>
+  .cmd {
+    font-size: 13px;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 0 0 8px;
+    font-weight: 600;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0 0 8px;
+    max-width: 64ch;
+  }
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-ghost);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin: 34px 0 16px;
+  }
+  .divider.spaced {
+    margin-top: 40px;
+  }
+  .rule {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
+    color: inherit;
+    font-size: inherit;
+  }
+  .card.company:hover {
+    border-color: rgba(167, 139, 250, 0.4);
+    transform: translateY(-3px);
+  }
+  .card.personal:hover {
+    border-color: rgba(52, 211, 153, 0.4);
+    transform: translateY(-3px);
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .card-org {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .card-year {
+    font-size: 11px;
+    color: var(--amber);
+  }
+  .nda {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--pink);
+    border: 1px solid rgba(244, 114, 182, 0.35);
+    background: rgba(244, 114, 182, 0.08);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .oss {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--green);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    background: rgba(52, 211, 153, 0.08);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .card-name {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .card-name.violet {
+    color: var(--violet);
+  }
+  .card-name.cyan {
+    color: var(--cyan);
+  }
+  .card-desc {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-soft);
+    margin: 0 0 14px;
+    flex: 1;
+    text-wrap: pretty;
+  }
+  .card-tags {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .tag {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.08);
+    color: var(--text-muted);
+    border: 1px solid var(--border-chip);
+  }
+  .card-cta {
+    font-size: 12px;
+  }
+
+  dialog {
+    width: min(620px, 94vw);
+    max-height: 88vh;
+    background: linear-gradient(160deg, rgba(15, 21, 32, 0.96), rgba(9, 13, 20, 0.98));
+    border: 1px solid #263b52;
+    border-radius: 16px;
+    padding: 28px 30px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+    color: var(--text);
+  }
+  dialog[open] {
+    animation: fadeUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  dialog::backdrop {
+    background: rgba(4, 7, 12, 0.72);
+    backdrop-filter: blur(4px);
+  }
+  .modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+  .kind {
+    font-size: 12px;
+    color: var(--violet);
+    letter-spacing: 0.3px;
+  }
+  .close {
+    cursor: pointer;
+    border: 1px solid #24384f;
+    background: transparent;
+    color: var(--text-label);
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .close:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+  dialog h2 {
+    font-family: var(--font-display);
+    font-size: 26px;
+    margin: 0 0 8px;
+    font-weight: 600;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+  }
+  .modal-meta {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+  .sep {
+    color: #4a5a6e;
+  }
+  .nda-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+    color: var(--pink);
+    background: rgba(244, 114, 182, 0.07);
+    border: 1px solid rgba(244, 114, 182, 0.25);
+    border-radius: 9px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    text-wrap: pretty;
+  }
+  .summary {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    font-size: 14.5px;
+    line-height: 1.75;
+    color: #b3c1d4;
+    margin-bottom: 22px;
+  }
+  .summary p {
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .label {
+    font-size: 11px;
+    color: var(--text-ghost);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 22px;
+  }
+  .hl {
+    display: flex;
+    gap: 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text-body);
+  }
+  .hl-mark {
+    color: var(--green);
+    flex-shrink: 0;
+  }
+  .stack {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 6px;
+    margin-bottom: 22px;
+  }
+  .stack-tag {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--cyan-soft);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+  }
+  .links {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .link {
+    font-size: 13px;
+    padding: 9px 16px;
+    border-radius: 8px;
+  }
+  .link.green {
+    color: var(--green);
+    border: 1px solid rgba(52, 211, 153, 0.45);
+    background: rgba(52, 211, 153, 0.1);
+  }
+  .link.cyan {
+    color: var(--cyan);
+    border: 1px solid rgba(34, 211, 238, 0.45);
+    background: rgba(34, 211, 238, 0.1);
+  }
+  .company-note {
+    font-size: 12px;
+    color: var(--text-ghost);
+    border-top: 1px solid var(--border-dim);
+    padding-top: 14px;
+  }
+</style>
+
+<script>
+  for (const card of document.querySelectorAll<HTMLElement>('[data-open]')) {
+    card.addEventListener('click', () => {
+      const dialog = document.getElementById(`project-${card.dataset.open}`);
+      if (dialog instanceof HTMLDialogElement) dialog.showModal();
+    });
+  }
+  for (const dialog of document.querySelectorAll('dialog')) {
+    dialog.querySelector('[data-close]')?.addEventListener('click', () => dialog.close());
+    // click on the backdrop (outside the padded box) closes
+    dialog.addEventListener('click', (e) => {
+      const r = dialog.getBoundingClientRect();
+      const inside =
+        e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      if (!inside) dialog.close();
+    });
+  }
+</script>
