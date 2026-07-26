@@ -23,7 +23,10 @@ export interface FlightDeckOptions {
   };
   onScore: (score: number) => void;
   onNodeOpen: (key: string, discovered: number) => void;
+  /** Fires at touchdown for both outcomes. */
   onLanderResult: (kind: 'landed' | 'crashed') => void;
+  /** Fires when the flag is planted, ~3s after a clean landing. */
+  onLanderCelebrate: () => void;
 }
 
 export interface FlightDeckApi {
@@ -66,6 +69,7 @@ export function createFlightDeck(opts: FlightDeckOptions): FlightDeckApi {
   deck.onOpen = (key) => opts.onNodeOpen(key, deck.discoveredCount());
   deck.onScore = opts.onScore;
   lander.onResult = opts.onLanderResult;
+  lander.onCelebrate = opts.onLanderCelebrate;
 
   function resize(): void {
     const rect = canvas.getBoundingClientRect();

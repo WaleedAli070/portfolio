@@ -1,9 +1,51 @@
 // Lunar-lander mini-game: generated terrain with a landing pad, gravity,
 // rotation + thrust with limited fuel, and landed/crashed verdicts.
-// Constants ported from design/Home.dc.html.
+// Constants ported from design/Home.dc.html. On a clean landing a pixel
+// astronaut climbs out and plants a flag; onCelebrate fires once the
+// flag is up so the page can delay the success modal past the animation.
 
 import type { Keys } from './types';
 import { burst, drawParticles, stepParticles, type Particle } from './particles';
+
+// Celebration timeline, in 60Hz frames from touchdown.
+const ANIM_APPEAR = 36;
+const ANIM_WALK_END = 180;
+const ANIM_POLE_END = 216;
+const ANIM_CLOTH_END = 246;
+const ANIM_RESULT_AT = 282;
+
+const PX = 3; // pixel-art cell size
+
+const SPRITE_COLORS: Record<string, string> = {
+  S: '#cdd2dc', // suit
+  V: '#34d399', // visor
+  P: '#8b9bb0', // backpack
+  G: '#34d399', // flag cloth
+  D: '#13996e', // flag cloth shading
+};
+
+// 7-wide astronaut, drawn facing right; two leg frames for the walk.
+const ASTRO_BODY = [
+  '..SSS..',
+  '..SVV..',
+  '..SSS..',
+  '.PSSSS.',
+  '.PSSSS.',
+  '.PSSS..',
+];
+const ASTRO_LEGS_A = ['..S.S..', '..S.S..', '.SS.SS.'];
+const ASTRO_LEGS_B = ['..S.S..', '.S...S.', 'SS...SS'];
+
+// Two ripple frames for the planted flag cloth.
+const FLAG_A = ['GGGGGGGG', 'GGDGGGDG', 'GGGGDGGG', 'GDGGGGGG', 'GGGGGGDG', 'GGGDGGGG'];
+const FLAG_B = ['GGGGGGGG', 'GGGGDGGG', 'GDGGGGDG', 'GGGGGDGG', 'GGDGGGGG', 'GGGGGGGG'];
+
+interface LandingAnim {
+  t: number;
+  side: 1 | -1;
+  startX: number;
+  targetX: number;
+}
 
 export interface Telemetry {
   alt: number;
@@ -24,8 +66,12 @@ interface Rocket {
 }
 
 export class Lander {
+  /** Fires at touchdown for both outcomes. */
   onResult: (kind: 'landed' | 'crashed') => void = () => {};
+  /** Fires once the flag is planted after a clean landing. */
+  onCelebrate: () => void = () => {};
 
+  private anim: LandingAnim | null = null;
   private W = 0;
   private H = 0;
   private terrain: { x: number; y: number }[] = [];
@@ -35,6 +81,8 @@ export class Lander {
   private particles: Particle[] = [];
   private rocket: Rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, r: 11, fuel: 1, thrusting: false };
   private done = false;
+  /** Flame intensity: 1 while thrusting, eases to 0 after touchdown. */
+  private thrustFade = 0;
 
   init(W: number, H: number): void {
     this.W = W;
@@ -86,6 +134,8 @@ export class Lander {
     };
     this.particles = [];
     this.done = false;
+    this.anim = null;
+    this.thrustFade = 0;
   }
 
   private terrainYAt(x: number): number {
@@ -126,6 +176,8 @@ export class Lander {
         const gentle = Math.abs(r.vy) < 1.3 && Math.abs(r.vx) < 0.75 && Math.abs(ang) < 0.22;
         this.done = true;
         if (onPad && gentle) {
+          const side: 1 | -1 = r.x < this.W / 2 ? 1 : -1;
+          this.anim = { t: 0, side, startX: r.x + side * (r.r + 8), targetX: r.x + side * 64 };
           this.onResult('landed');
         } else {
           burst(this.particles, r.x, r.y, '#f87171', 26);
@@ -133,6 +185,12 @@ export class Lander {
         }
       }
     }
+    if (this.anim) {
+      this.anim.t++;
+      if (this.anim.t === ANIM_RESULT_AT) this.onCelebrate();
+    }
+    if (this.done) this.thrustFade *= 0.955; // engine winds down after touchdown
+    else this.thrustFade = r.thrusting ? 1 : 0;
     this.particles = stepParticles(this.particles);
     const gy = this.terrainYAt(r.x);
     return { alt: Math.max(0, Math.round(gy - (r.y + r.r))), vy: r.vy, vx: r.vx, fuel: r.fuel };
@@ -230,15 +288,17 @@ export class Lander {
     ctx.save();
     ctx.translate(r.x, r.y);
     ctx.rotate(r.angle);
-    if (r.thrusting) {
+    const flame = this.thrustFade;
+    if (flame > 0.05) {
       ctx.save();
-      ctx.shadowBlur = 12;
+      ctx.globalAlpha = flame;
+      ctx.shadowBlur = 12 * flame;
       ctx.shadowColor = '#fbbf24';
       ctx.fillStyle = 'rgba(251,191,36,0.9)';
       ctx.beginPath();
-      ctx.moveTo(-4, r.r * 0.7);
-      ctx.lineTo(0, r.r * 0.7 + 8 + Math.random() * 8);
-      ctx.lineTo(4, r.r * 0.7);
+      ctx.moveTo(-4 * flame, r.r * 0.7);
+      ctx.lineTo(0, r.r * 0.7 + (8 + Math.random() * 8) * flame);
+      ctx.lineTo(4 * flame, r.r * 0.7);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
@@ -249,11 +309,11 @@ export class Lander {
     ctx.lineWidth = 1.8;
     ctx.fillStyle = 'rgba(52,211,153,0.12)';
     ctx.beginPath();
-    ctx.moveTo(0, -r.r * 1.2);
-    ctx.lineTo(r.r * 0.6, -r.r * 0.2);
+    ctx.moveTo(0, -r.r * 1.9);
+    ctx.lineTo(r.r * 0.6, -r.r * 0.9);
     ctx.lineTo(r.r * 0.6, r.r * 0.7);
     ctx.lineTo(-r.r * 0.6, r.r * 0.7);
-    ctx.lineTo(-r.r * 0.6, -r.r * 0.2);
+    ctx.lineTo(-r.r * 0.6, -r.r * 0.9);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -263,6 +323,75 @@ export class Lander {
     ctx.moveTo(r.r * 0.6, r.r * 0.7);
     ctx.lineTo(r.r * 1.05, r.r * 1.2);
     ctx.stroke();
+    ctx.restore();
+
+    this.drawCelebration(ctx);
+  }
+
+  /** Draw a pixel sprite anchored at bottom-center; flip mirrors horizontally. */
+  private drawSprite(
+    ctx: CanvasRenderingContext2D,
+    rows: string[],
+    x: number,
+    yBottom: number,
+    flip: boolean
+  ): void {
+    const w = rows[0].length;
+    const x0 = x - (w * PX) / 2;
+    const y0 = yBottom - rows.length * PX;
+    for (let ry = 0; ry < rows.length; ry++) {
+      for (let cx = 0; cx < w; cx++) {
+        const c = rows[ry][flip ? w - 1 - cx : cx];
+        const color = SPRITE_COLORS[c];
+        if (!color) continue;
+        ctx.fillStyle = color;
+        ctx.fillRect(x0 + cx * PX, y0 + ry * PX, PX, PX);
+      }
+    }
+  }
+
+  private drawCelebration(ctx: CanvasRenderingContext2D): void {
+    const anim = this.anim;
+    if (!anim || anim.t < ANIM_APPEAR) return;
+    const t = anim.t;
+
+    // astronaut position: walk from the ship hatch to the planting spot
+    const walk = Math.min(1, Math.max(0, (t - ANIM_APPEAR) / (ANIM_WALK_END - ANIM_APPEAR)));
+    const flagX = anim.targetX + anim.side * 8;
+    const astroX =
+      t < ANIM_WALK_END
+        ? anim.startX + (anim.targetX - anim.startX) * walk
+        : anim.targetX; // stands beside the pole while planting
+    const walking = t < ANIM_WALK_END;
+    const bob = walking ? Math.abs(Math.sin(t * 0.18)) * 2.5 : 0;
+    const legs = walking && Math.floor(t / 12) % 2 === 0 ? ASTRO_LEGS_B : ASTRO_LEGS_A;
+    const astroY = this.terrainYAt(astroX) + 1 - bob;
+    this.drawSprite(ctx, [...ASTRO_BODY, ...legs], astroX, astroY, anim.side === -1);
+
+    // flag: pole rises, then the cloth unfurls, then it ripples forever
+    if (t <= ANIM_WALK_END) return;
+    const groundY = this.terrainYAt(flagX) + 1;
+    const poleH = 44 * Math.min(1, (t - ANIM_WALK_END) / (ANIM_POLE_END - ANIM_WALK_END));
+    ctx.fillStyle = SPRITE_COLORS.S;
+    ctx.fillRect(flagX - PX / 2, groundY - poleH, PX * 0.6, poleH);
+    if (t <= ANIM_POLE_END) return;
+    const cloth = Math.floor(t / 26) % 2 === 0 ? FLAG_A : FLAG_B;
+    const unfurl = Math.min(1, (t - ANIM_POLE_END) / (ANIM_CLOTH_END - ANIM_POLE_END));
+    const cols = Math.max(1, Math.round(cloth[0].length * unfurl));
+    const clothRows = cloth.map((row) => row.slice(0, cols));
+    const clothW = cols * PX;
+    ctx.save();
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#34d399';
+    for (let ry = 0; ry < clothRows.length; ry++) {
+      for (let cx = 0; cx < clothRows[ry].length; cx++) {
+        const color = SPRITE_COLORS[clothRows[ry][cx]];
+        if (!color) continue;
+        ctx.fillStyle = color;
+        const px = anim.side === 1 ? flagX + PX * 0.4 + cx * PX : flagX - PX * 0.4 - clothW + cx * PX;
+        ctx.fillRect(px, groundY - poleH + ry * PX, PX, PX);
+      }
+    }
     ctx.restore();
   }
 }

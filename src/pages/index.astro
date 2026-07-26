@@ -3,24 +3,64 @@
 // .fallback layer is what no-JS and prefers-reduced-motion visitors get;
 // everyone else gets the playable deck (ship, asteroids, nav nodes) and
 // the lunar-lander mini-game. Game logic lives in src/scripts/flightdeck/.
-import { getCollection } from 'astro:content';
-import Base from '../layouts/Base.astro';
-import { SITE } from '../data/site';
-import { EXPERIENCE } from '../data/career';
-import { COMPANY_PROJECTS, PERSONAL_PROJECTS } from '../data/projects';
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import { SITE } from "../data/site";
+import { EXPERIENCE } from "../data/career";
+import { COMPANY_PROJECTS, PERSONAL_PROJECTS } from "../data/projects";
 
 const NODES = [
-  { key: 'about', label: 'about.me', sigil: '@', color: '#34d399', fx: 0.15, fy: 0.56, href: '/about' },
-  { key: 'projects', label: 'projects', sigil: '#', color: '#22d3ee', fx: 0.8, fy: 0.26, href: '/projects' },
-  { key: 'blogs', label: 'writing', sigil: '*', color: '#fbbf24', fx: 0.24, fy: 0.78, href: '/blog' },
-  { key: 'contact', label: 'contact', sigil: '>', color: '#a78bfa', fx: 0.8, fy: 0.76, href: '/contact' },
-  { key: 'resume', label: 'resume.pdf', sigil: '^', color: '#f472b6', fx: 0.5, fy: 0.14, href: '/resume.pdf' },
+  {
+    key: "about",
+    label: "about.me",
+    sigil: "@",
+    color: "#34d399",
+    fx: 0.15,
+    fy: 0.56,
+    href: "/about",
+  },
+  {
+    key: "projects",
+    label: "projects",
+    sigil: "#",
+    color: "#22d3ee",
+    fx: 0.8,
+    fy: 0.26,
+    href: "/projects",
+  },
+  {
+    key: "blogs",
+    label: "writing",
+    sigil: "*",
+    color: "#fbbf24",
+    fx: 0.24,
+    fy: 0.78,
+    href: "/blog",
+  },
+  {
+    key: "contact",
+    label: "contact",
+    sigil: ">",
+    color: "#a78bfa",
+    fx: 0.8,
+    fy: 0.76,
+    href: "/contact",
+  },
+  {
+    key: "resume",
+    label: "resume.pdf",
+    sigil: "^",
+    color: "#f472b6",
+    fx: 0.5,
+    fy: 0.14,
+    href: "/resume.pdf",
+  },
 ];
 
 // Tunables from the design's data-props.
 const CONFIG = { lethalAsteroids: true, asteroidCount: 5, thrustPower: 0.34 };
 
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
+const posts = (await getCollection("blog", ({ data }) => !data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
   .slice(0, 3);
 const topProjects = COMPANY_PROJECTS.slice(0, 3);
@@ -36,51 +76,54 @@ interface DeckCard {
 
 const CARDS: DeckCard[] = [
   {
-    key: 'about',
-    subtitle: 'cat about.txt',
-    title: 'About',
+    key: "about",
+    subtitle: "cat about.txt",
+    title: "About",
     lines: [
-      'Engineering Manager & Staff Engineer — ~10 yrs across the stack.',
-      'Path: IoT dashboards → AV simulation → zero-trust → fintech.',
+      "Engineering Manager & Staff Engineer — ~10 yrs across the stack.",
+      "Path: IoT dashboards → AV simulation → zero-trust → fintech.",
       `Now leading engineering at ${EXPERIENCE[0].org} — wellness platform + fintech treasury.`,
-      'I care about calm, observable, predictable systems.',
+      "I care about calm, observable, predictable systems.",
     ],
-    cta: { label: 'read full bio →', href: '/about' },
+    cta: { label: "read full bio →", href: "/about" },
   },
   {
-    key: 'projects',
-    subtitle: 'ls -la projects/',
-    title: 'Projects',
+    key: "projects",
+    subtitle: "ls -la projects/",
+    title: "Projects",
     lines: [
-      ...topProjects.map((p) => `${p.name} — ${p.tags.join(' · ')}`),
+      ...topProjects.map((p) => `${p.name} — ${p.tags.join(" · ")}`),
       `showing ${topProjects.length} of ${projectCount} — the rest are on the projects page.`,
     ],
-    cta: { label: 'open all projects →', href: '/projects' },
+    cta: { label: "open all projects →", href: "/projects" },
   },
   {
-    key: 'blogs',
-    subtitle: 'cat blogs/*.md',
-    title: 'Writing',
+    key: "blogs",
+    subtitle: "cat blogs/*.md",
+    title: "Writing",
     lines: posts.map((p) => p.data.title),
-    cta: { label: 'read the blog →', href: '/blog' },
+    cta: { label: "read the blog →", href: "/blog" },
   },
   {
-    key: 'contact',
-    subtitle: './contact --send',
-    title: 'Contact',
+    key: "contact",
+    subtitle: "./contact --send",
+    title: "Contact",
     lines: [
-      'Open to staff / architecture / EM conversations.',
+      "Open to staff / architecture / EM conversations.",
       `Fastest route is email — ${SITE.email}.`,
       `Also on GitHub (${SITE.githubLabel}) and LinkedIn.`,
     ],
-    cta: { label: 'get in touch →', href: '/contact' },
+    cta: { label: "get in touch →", href: "/contact" },
   },
   {
-    key: 'resume',
-    subtitle: 'wget resume.pdf',
-    title: 'Résumé',
-    lines: ['Engineering Manager / Staff Engineer track.', 'PDF · last updated Feb 2026.'],
-    cta: { label: 'download resume.pdf', href: '/resume.pdf', download: true },
+    key: "resume",
+    subtitle: "wget resume.pdf",
+    title: "Résumé",
+    lines: [
+      "Engineering Manager / Staff Engineer track.",
+      "PDF · last updated Feb 2026.",
+    ],
+    cta: { label: "download resume.pdf", href: "/resume.pdf", download: true },
   },
 ];
 
@@ -95,16 +138,23 @@ const cardStyle = (key: string) => {
 };
 
 const BOOT_LINES = [
-  { text: `portfolio.sys ${SITE.version} — initializing`, color: '#8b9bb0' },
-  { text: '> mounting /dev/starfield ......... ok', color: '#647689' },
-  { text: '> loading pilot profile ........... ok', color: '#647689' },
-  { text: '> calibrating thrusters ........... ok', color: '#647689' },
-  { text: '> arming cannon ................... ok', color: '#647689' },
+  { text: `portfolio.sys ${SITE.version} — initializing`, color: "#8b9bb0" },
+  { text: "> mounting /dev/starfield ......... ok", color: "#647689" },
+  { text: "> loading pilot profile ........... ok", color: "#647689" },
+  { text: "> calibrating thrusters ........... ok", color: "#647689" },
+  { text: "> arming cannon ................... ok", color: "#647689" },
 ];
 
 const fdData = {
   config: CONFIG,
-  nodes: NODES.map(({ key, label, sigil, color, fx, fy }) => ({ key, label, sigil, color, fx, fy })),
+  nodes: NODES.map(({ key, label, sigil, color, fx, fy }) => ({
+    key,
+    label,
+    sigil,
+    color,
+    fx,
+    fy,
+  })),
 };
 ---
 
@@ -133,9 +183,9 @@ const fdData = {
             <h1>{SITE.name}</h1>
             <div class="roles">{SITE.roles}</div>
             <p class="blurb">
-              ~10 years across the stack — IoT, AV simulation, zero-trust networking, fintech
-              infrastructure. I build platforms that stay calm under pressure, and lead the teams
-              that run them.
+              ~10 years across the stack — IoT, AV simulation, zero-trust
+              networking, fintech infrastructure. I build platforms that stay
+              calm under pressure, and lead the teams that run them.
             </p>
           </div>
 
@@ -163,39 +213,60 @@ const fdData = {
               <h1>{SITE.name}</h1>
               <div class="roles">{SITE.roles}</div>
               <p class="blurb">
-                ~10 years across the stack — IoT, AV simulation, zero-trust networking, fintech
-                infrastructure. I build platforms that stay calm under pressure.
+                ~10 years across the stack — IoT, AV simulation, zero-trust
+                networking, fintech infrastructure. I build platforms that stay
+                calm under pressure.
               </p>
               <div class="keys-hint">
-                <span class="k-label">fly:</span> <span class="k-val">WASD / ↑ ↓ ← →</span>
+                <span class="k-label">fly:</span>
+                <span class="k-val">WASD / ↑ ↓ ← →</span>
                 &nbsp;·&nbsp;
-                <span class="k-label">fire:</span> <span class="k-val">SPACE</span><br />
+                <span class="k-label">fire:</span>
+                <span class="k-val">SPACE</span><br />
                 <span>explore the nodes to open each section</span>
               </div>
             </div>
-
-            <div class="score-panel">
-              <div class="score-row"><span>score</span><span class="score-val" id="score">0</span></div>
-              <div class="score-row">
-                <span>found</span><span class="found-val" id="found">0/{NODES.length}</span>
-              </div>
-            </div>
-
-            <nav class="nodes" aria-label="Sections">
-              <div class="nodes-label">nav nodes</div>
-              <div class="nodes-row">
-                {
-                  NODES.map((n) => (
-                    <button class="node" data-node={n.key} style={`--node: ${n.color}`}>
-                      <span class="node-dot" />
-                      <span class="node-name">{n.label}</span>
-                      <span class="node-check">·</span>
-                    </button>
-                  ))
-                }
-              </div>
-            </nav>
           </div>
+
+          <div class="score-panel">
+            <div class="score-row deck-row">
+              <span>score</span><span class="score-val" id="score">0</span>
+            </div>
+            <div class="score-row deck-row">
+              <span>found</span><span class="found-val" id="found"
+                >0/{NODES.length}</span
+              >
+            </div>
+            <div class="score-row lander-row">
+              <span>landed</span><span class="found-val" id="landed-count"
+                >0</span
+              >
+            </div>
+            <div class="score-row lander-row">
+              <span>crashed</span><span class="crashed-val" id="crashed-count"
+                >0</span
+              >
+            </div>
+          </div>
+
+          <nav class="nodes" aria-label="Sections">
+            <div class="nodes-label">nav nodes</div>
+            <div class="nodes-row">
+              {
+                NODES.map((n) => (
+                  <button
+                    class="node"
+                    data-node={n.key}
+                    style={`--node: ${n.color}`}
+                  >
+                    <span class="node-dot" />
+                    <span class="node-name">{n.label}</span>
+                    <span class="node-check">·</span>
+                  </button>
+                ))
+              }
+            </div>
+          </nav>
 
           <div class="touch" id="touch" hidden>
             <div class="dpad">
@@ -212,10 +283,17 @@ const fdData = {
           <div class="card-overlay" id="card-overlay" hidden>
             {
               CARDS.map((c) => (
-                <article class="card" data-card={c.key} hidden style={cardStyle(c.key)}>
+                <article
+                  class="card"
+                  data-card={c.key}
+                  hidden
+                  style={cardStyle(c.key)}
+                >
                   <div class="card-head">
                     <div class="card-sub">$ {c.subtitle}</div>
-                    <button class="card-close" aria-label="Close">✕</button>
+                    <button class="card-close" aria-label="Close">
+                      ✕
+                    </button>
                   </div>
                   <h2>{c.title}</h2>
                   <div class="card-lines">
@@ -226,7 +304,11 @@ const fdData = {
                       </div>
                     ))}
                   </div>
-                  <a class="card-cta" href={c.cta.href} download={c.cta.download}>
+                  <a
+                    class="card-cta"
+                    href={c.cta.href}
+                    download={c.cta.download}
+                  >
                     {c.cta.label}
                   </a>
                 </article>
@@ -251,20 +333,25 @@ const fdData = {
                 </div>
                 <div class="tele">
                   <div class="tele-label">FUEL</div>
-                  <div class="fuel-bar"><div class="fuel-fill" id="lander-fuel"></div></div>
+                  <div class="fuel-bar">
+                    <div class="fuel-fill" id="lander-fuel"></div>
+                  </div>
                 </div>
               </div>
-              <div class="lander-hint">↑ / W thrust &nbsp;·&nbsp; ← → rotate &nbsp;·&nbsp; set her down soft on the pad</div>
+              <div class="lander-hint">
+                ↑ / W thrust &nbsp;·&nbsp; ← → rotate &nbsp;·&nbsp; set her down
+                soft on the pad
+              </div>
             </div>
-            <button class="exit-lander" id="exit-lander">← flight deck</button>
-
             <div class="lander-result" id="lander-result" hidden>
               <div class="result-box" id="result-box">
                 <div class="result-title" id="result-title"></div>
                 <div class="result-msg" id="result-msg"></div>
                 <div class="result-actions">
                   <button class="retry-btn" id="retry-lander">retry</button>
-                  <button class="exit-btn" id="exit-lander-2">flight deck</button>
+                  <button class="exit-btn" id="exit-lander-2"
+                    >flight deck</button
+                  >
                 </div>
               </div>
             </div>
@@ -281,38 +368,59 @@ const fdData = {
 
     <div class="boot" id="boot" hidden>
       <div class="boot-inner">
-        {BOOT_LINES.map((l) => <div class="boot-line" style={`color: ${l.color}`}>{l.text}</div>)}
-        <div class="boot-launch">launching flight deck<span class="cursor"></span></div>
+        {
+          BOOT_LINES.map((l) => (
+            <div class="boot-line" style={`color: ${l.color}`}>
+              {l.text}
+            </div>
+          ))
+        }
+        <div class="boot-launch">
+          launching flight deck<span class="cursor"></span>
+        </div>
         <button class="boot-skip" id="boot-skip">skip →</button>
       </div>
     </div>
-    <script is:inline type="application/json" id="fd-data" set:html={JSON.stringify(fdData)} />
+    <script
+      is:inline
+      type="application/json"
+      id="fd-data"
+      set:html={JSON.stringify(fdData)}
+    />
   </div>
 </Base>
 
 <script>
-  import { createFlightDeck } from '../scripts/flightdeck';
+  import { createFlightDeck } from "../scripts/flightdeck";
 
-  const deckEl = document.getElementById('deck');
-  const canvas = document.getElementById('fd-canvas') as HTMLCanvasElement | null;
-  const dataEl = document.getElementById('fd-data');
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const deckEl = document.getElementById("deck");
+  const canvas = document.getElementById(
+    "fd-canvas",
+  ) as HTMLCanvasElement | null;
+  const dataEl = document.getElementById("fd-data");
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   if (deckEl && canvas && dataEl && !reduced) {
-    const { config, nodes } = JSON.parse(dataEl.textContent || '{}');
-    deckEl.classList.add('play');
+    const { config, nodes } = JSON.parse(dataEl.textContent || "{}");
+    deckEl.classList.add("play");
 
     const $ = (id: string) => document.getElementById(id)!;
-    const gameEl = $('game');
-    const scoreEl = $('score');
-    const foundEl = $('found');
-    const modeBtn = $('mode-btn');
-    const coordsEl = $('coords');
-    const cardOverlay = $('card-overlay');
-    const cards = Array.from(cardOverlay.querySelectorAll<HTMLElement>('[data-card]'));
-    const legendItems = Array.from(gameEl.querySelectorAll<HTMLElement>('[data-node]'));
-    const resultEl = $('lander-result');
-    const resultBox = $('result-box');
+    const gameEl = $("game");
+    const scoreEl = $("score");
+    const foundEl = $("found");
+    const modeBtn = $("mode-btn");
+    const coordsEl = $("coords");
+    const cardOverlay = $("card-overlay");
+    const cards = Array.from(
+      cardOverlay.querySelectorAll<HTMLElement>("[data-card]"),
+    );
+    const legendItems = Array.from(
+      gameEl.querySelectorAll<HTMLElement>("[data-node]"),
+    );
+    const resultEl = $("lander-result");
+    const resultBox = $("result-box");
+    let landedCount = 0;
+    let crashedCount = 0;
 
     modeBtn.hidden = false;
     coordsEl.hidden = false;
@@ -331,10 +439,10 @@ const fdData = {
       nodes,
       hud: {
         coords: coordsEl,
-        alt: $('lander-alt'),
-        vs: $('lander-vs'),
-        hs: $('lander-hs'),
-        fuel: $('lander-fuel'),
+        alt: $("lander-alt"),
+        vs: $("lander-vs"),
+        hs: $("lander-hs"),
+        fuel: $("lander-fuel"),
       },
       onScore: (s) => {
         scoreEl.textContent = String(s);
@@ -342,94 +450,113 @@ const fdData = {
       onNodeOpen: (key, discovered) => {
         foundEl.textContent = `${discovered}/${nodes.length}`;
         const item = legendItems.find((el) => el.dataset.node === key);
-        item?.classList.add('found');
-        const check = item?.querySelector('.node-check');
-        if (check) check.textContent = '✓';
+        item?.classList.add("found");
+        const check = item?.querySelector(".node-check");
+        if (check) check.textContent = "✓";
         showCard(key);
       },
+      // fires at touchdown; the success modal waits for onLanderCelebrate
       onLanderResult: (kind) => {
-        const landed = kind === 'landed';
-        $('result-title').textContent = landed ? 'touchdown ✓' : 'crashed ✗';
-        $('result-msg').textContent = landed
-          ? 'clean landing — thrusters nominal.'
-          : 'too hot, off-pad, or bad angle. try again.';
-        resultBox.style.setProperty('--result-color', landed ? '#34d399' : '#f87171');
+        const landed = kind === "landed";
+        if (landed) landedCount++;
+        else crashedCount++;
+        $("landed-count").textContent = String(landedCount);
+        $("crashed-count").textContent = String(crashedCount);
+        $("result-title").textContent = landed ? "touchdown ✓" : "crashed ✗";
+        $("result-msg").textContent = landed
+          ? "clean landing — flag planted, thrusters nominal."
+          : "too hot, off-pad, or bad angle. try again.";
         resultBox.style.setProperty(
-          '--result-border',
-          landed ? 'rgba(52,211,153,0.45)' : 'rgba(248,113,113,0.45)'
+          "--result-color",
+          landed ? "#34d399" : "#f87171",
         );
+        resultBox.style.setProperty(
+          "--result-border",
+          landed ? "rgba(52,211,153,0.45)" : "rgba(248,113,113,0.45)",
+        );
+        if (!landed) resultEl.hidden = false;
+      },
+      onLanderCelebrate: () => {
         resultEl.hidden = false;
       },
     });
 
     for (const item of legendItems) {
-      item.addEventListener('click', () => fd.openNode(item.dataset.node!));
+      item.addEventListener("click", () => fd.openNode(item.dataset.node!));
     }
     for (const c of cards) {
-      c.querySelector('.card-close')?.addEventListener('click', hideCard);
+      c.querySelector(".card-close")?.addEventListener("click", hideCard);
     }
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !cardOverlay.hidden) hideCard();
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !cardOverlay.hidden) hideCard();
     });
 
-    const setMode = (m: 'deck' | 'lander') => {
+    const setMode = (m: "deck" | "lander") => {
       gameEl.dataset.mode = m;
-      modeBtn.textContent = m === 'lander' ? '▶ flight deck' : '▶ lander';
+      modeBtn.textContent = m === "lander" ? "▶ flight deck" : "▶ lander";
       resultEl.hidden = true;
-      if (m === 'lander') hideCard();
+      if (m === "lander") hideCard();
     };
-    modeBtn.addEventListener('click', () => {
-      if (gameEl.dataset.mode === 'lander') {
+    modeBtn.addEventListener("click", () => {
+      if (gameEl.dataset.mode === "lander") {
         fd.exitLander();
-        setMode('deck');
+        setMode("deck");
       } else {
         fd.startLander();
-        setMode('lander');
+        setMode("lander");
       }
     });
     const exitLander = () => {
       fd.exitLander();
-      setMode('deck');
+      setMode("deck");
     };
-    $('exit-lander').addEventListener('click', exitLander);
-    $('exit-lander-2').addEventListener('click', exitLander);
-    $('retry-lander').addEventListener('click', () => {
+    $("exit-lander-2").addEventListener("click", exitLander);
+    $("retry-lander").addEventListener("click", () => {
       fd.retryLander();
       resultEl.hidden = true;
     });
 
-    const touchEl = $('touch');
-    if (window.matchMedia('(pointer: coarse)').matches) {
+    const touchEl = $("touch");
+    if (window.matchMedia("(pointer: coarse)").matches) {
       touchEl.hidden = false;
-      for (const btn of Array.from(touchEl.querySelectorAll<HTMLElement>('[data-dir]'))) {
-        const dir = btn.dataset.dir as 'up' | 'down' | 'left' | 'right' | 'fire';
-        btn.addEventListener('pointerdown', (e) => {
+      for (const btn of Array.from(
+        touchEl.querySelectorAll<HTMLElement>("[data-dir]"),
+      )) {
+        const dir = btn.dataset.dir as
+          "up" | "down" | "left" | "right" | "fire";
+        btn.addEventListener("pointerdown", (e) => {
           e.preventDefault();
           fd.setKey(dir, true);
         });
-        for (const ev of ['pointerup', 'pointercancel', 'pointerleave'] as const) {
+        for (const ev of [
+          "pointerup",
+          "pointercancel",
+          "pointerleave",
+        ] as const) {
           btn.addEventListener(ev, () => fd.setKey(dir, false));
         }
       }
     }
 
     // boot sequence — once per tab session
-    const bootEl = $('boot');
+    const bootEl = $("boot");
     let bootSeen = false;
     try {
-      bootSeen = sessionStorage.getItem('fd-boot') === '1';
+      bootSeen = sessionStorage.getItem("fd-boot") === "1";
     } catch {
       /* storage unavailable — boot every time */
     }
     if (!bootSeen) {
       bootEl.hidden = false;
-      const lines = Array.from(bootEl.querySelectorAll<HTMLElement>('.boot-line'));
+      const lines = Array.from(
+        bootEl.querySelectorAll<HTMLElement>(".boot-line"),
+      );
       let i = 0;
       let t = 0;
       const done = () => {
         bootEl.hidden = true;
         try {
-          sessionStorage.setItem('fd-boot', '1');
+          sessionStorage.setItem("fd-boot", "1");
         } catch {
           /* ignore */
         }
@@ -439,11 +566,11 @@ const fdData = {
           t = window.setTimeout(done, 420);
           return;
         }
-        lines[i++].classList.add('show');
+        lines[i++].classList.add("show");
         t = window.setTimeout(step, 230);
       };
       t = window.setTimeout(step, 260);
-      $('boot-skip').addEventListener('click', () => {
+      $("boot-skip").addEventListener("click", () => {
         clearTimeout(t);
         done();
       });
@@ -745,10 +872,16 @@ const fdData = {
     inset: 0;
     pointer-events: none;
   }
-  .game[data-mode='deck'] .lander-hud {
+  .game[data-mode="deck"] .lander-hud {
     display: none;
   }
-  .game[data-mode='lander'] .deck-hud {
+  .game[data-mode="lander"] .deck-hud {
+    display: none;
+  }
+  .game[data-mode="deck"] .lander-row {
+    display: none;
+  }
+  .game[data-mode="lander"] .deck-row {
     display: none;
   }
 
@@ -786,6 +919,10 @@ const fdData = {
   }
   .found-val {
     color: var(--green);
+    font-weight: 600;
+  }
+  .crashed-val {
+    color: var(--red);
     font-weight: 600;
   }
 
@@ -851,7 +988,11 @@ const fdData = {
   .card {
     pointer-events: auto;
     width: min(560px, 92vw);
-    background: linear-gradient(160deg, rgba(12, 18, 28, 0.4), rgba(8, 12, 20, 0.56));
+    background: linear-gradient(
+      160deg,
+      rgba(12, 18, 28, 0.4),
+      rgba(8, 12, 20, 0.56)
+    );
     border: 1px solid var(--accent-border);
     border-radius: 16px;
     padding: 26px 28px 24px;
@@ -989,36 +1130,23 @@ const fdData = {
     font-size: 11px;
     color: var(--text-faint);
   }
-  .exit-lander {
-    position: absolute;
-    top: 22px;
-    right: 22px;
-    pointer-events: auto;
-    cursor: pointer;
-    font-size: 12px;
-    font-family: var(--font-mono);
-    color: #c6d3e3;
-    background: rgba(9, 14, 22, 0.7);
-    border: 1px solid #2c4058;
-    padding: 7px 13px;
-    border-radius: 6px;
-  }
-  .exit-lander:hover {
-    border-color: var(--cyan);
-    color: var(--cyan);
-  }
-
+  /* upper third, clear of the landing site and the flag animation */
   .lander-result {
     position: absolute;
     inset: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    padding-top: min(24vh, 190px);
   }
   .result-box {
     pointer-events: auto;
     text-align: center;
-    background: linear-gradient(160deg, rgba(12, 18, 28, 0.42), rgba(8, 12, 20, 0.58));
+    background: linear-gradient(
+      160deg,
+      rgba(12, 18, 28, 0.42),
+      rgba(8, 12, 20, 0.58)
+    );
     border: 1px solid var(--result-border, rgba(52, 211, 153, 0.45));
     border-radius: 16px;
     padding: 26px 34px;
