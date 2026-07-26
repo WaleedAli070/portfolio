@@ -54,9 +54,16 @@ Fonts: JetBrains Mono (body/UI), Space Grotesk (headings).
 - Interactivity is small vanilla `<script>` blocks per page (modals via
   native `<dialog>`, blog filters, mailto contact form — swap to a
   Cloudflare Function later)
-- Status: content pages match the design; the `/` canvas game (flight
-  deck + lander per `design/Home.dc.html`) is still an interim static
-  screen
+- `src/scripts/flightdeck/` — the `/` canvas game as plain-TS modules
+  (`background`/`deck`/`lander`/`particles` + controller in `index.ts`);
+  `index.astro` owns all DOM (HUD, cards, boot, touch) and wires it via
+  `createFlightDeck` callbacks. Sim runs fixed 60Hz steps regardless of
+  display refresh rate. No-JS and `prefers-reduced-motion` visitors get
+  the static `.fallback` layer; boot sequence plays once per tab session
+  (`sessionStorage`)
+- Status: content pages and the `/` flight-deck game (deck + lander)
+  match the design; remaining: contact-form Cloudflare Function, more
+  blog posts
 
 ## Principles
 
