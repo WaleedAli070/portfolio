@@ -155,10 +155,11 @@ export const PERSONAL_PROJECTS: Project[] = [
     tags: ['Astro', 'Canvas', 'MDX'],
     summary: [
       'The site you are looking at: a canvas flight-deck home screen with playable mini-games, wrapped around a calm, readable content site.',
-      'Built on Astro with an MDX blog; the games are vanilla canvas so they stay fast and dependency-free.',
+      'Built on Astro with an MDX blog; the games are vanilla canvas running a fixed 60Hz simulation, so they stay fast and dependency-free.',
     ],
     highlights: [
-      'Interactive spaceship + lunar-lander games (in progress)',
+      'Asteroids-style flight deck — fly between nav nodes to open site sections',
+      'Lunar lander with limited fuel, tilt-sensitive landings, and a flag-planting astronaut',
       'MDX blog with tag filtering',
       'Static output on Cloudflare — zero-cost hosting',
     ],
