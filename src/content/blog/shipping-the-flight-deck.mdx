@@ -1,0 +1,72 @@
+---
+title: 'Shipping the flight deck: two canvas games, zero dependencies'
+date: 2026-07-29
+tags: ['canvas', 'frontend']
+excerpt: 'The home page is now a playable spaceship deck with a lunar-lander mini-game inside it. Notes from building both in vanilla canvas: fixed-timestep physics, landing verdicts, and a pixel astronaut.'
+draft: false
+---
+
+The home page of this site is now a game. You fly a small ship through an
+asteroid field, and the five glowing nav nodes scattered around the screen
+are the site's sections: fly close to one and its card opens with a particle
+burst. One of them launches a second game, a lunar lander with limited fuel
+and a terrain that regenerates on every attempt.
+
+Both games are vanilla `<canvas>` and TypeScript. No engine, no physics
+library, no sprite framework. The whole thing is five small modules:
+a starfield backdrop, the deck sim, the lander sim, a shared particle
+helper, and a controller that owns the canvas and the render loop.
+
+## Navigation as gameplay
+
+The deck is an Asteroids variant where crashing into rocks is survivable.
+Rocks above a size threshold split in two when shot, smaller ones vaporize,
+and the ship wraps around the screen edges. But the actual job of the game
+is navigation: each nav node has an activation radius a little wider than
+its drawn circle, and crossing it marks the node discovered and opens the
+matching section card. A legend in the corner lists the same sections as
+plain clickable text, so nobody has to earn the About page.
+
+## The 60Hz contract
+
+Every physics constant in these games is a per-frame value: friction is
+`vx *= 0.93`, lunar gravity is `vy += 0.018` per step, thrust burns 0.24%
+of the tank per frame. I tuned all of them in a design mockup on a 60Hz
+display, and they only mean anything at that rate. Run the same constants
+inside `requestAnimationFrame` on a 120Hz monitor and the ship handles
+like it's on ice while the lander falls twice as hard.
+
+The fix is the classic accumulator loop. The controller measures real time
+between frames, banks it, and drains the bank in fixed 16.67ms simulation
+steps; drawing happens once per display frame regardless of how many steps
+ran. One guard matters in practice: when a background tab gets throttled
+and comes back, the bank can hold seconds of debt, so the loop caps it at
+100ms instead of fast-forwarding the game through everything you missed.
+
+## Judging a landing
+
+The lander generates its terrain as twelve line segments with one pair
+flattened into a landing pad. Touchdown runs three checks: vertical speed,
+horizontal drift, and tilt. Fail any of them, or miss the pad, and the
+rocket disappears into a burst of red particles. The HUD shows the same
+three numbers while you fly and flips them from green to red as they cross
+their thresholds, so a crash never feels like the game's opinion.
+
+A clean landing earns a celebration: a three-pixel-per-cell astronaut
+climbs out, walks to a spot beside the ship, raises a pole, and unfurls a
+rippling flag. The whole sequence is a hand-written timeline in frame
+counts, and the success modal waits for the flag before it appears.
+Interrupting the animation with a scoreboard would have wasted the best
+part.
+
+## Keeping the DOM out of the sim
+
+The game modules never touch the page. They expose callbacks (`onNodeOpen`,
+`onLanderResult`, `onCelebrate`) and the Astro page owns everything else:
+the HUD text, the section cards, the boot sequence, the touch controls.
+That split kept both sides simple, and it means the sim runs headless in
+tests or a different shell without changes.
+
+Visitors without JavaScript, and anyone with `prefers-reduced-motion` set,
+skip the game and get a static layout with the same links. A cockpit is a
+nice front door, but it stays optional.
