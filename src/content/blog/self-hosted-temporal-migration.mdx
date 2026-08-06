@@ -1,0 +1,92 @@
+---
+title: "Migrating self-hosted Temporal: nine versions, one morning"
+date: 2026-07-06
+tags: ["infra", "agents", "temporal"]
+excerpt: "An OS vulnerability report forced our two-year-old Temporal VM onto a new machine, so I took that as an opportunity and also cleared nine server versions of debt, while I was at it. Notes on the guardrails and rehearsals that let an agent drive most of it."
+draft: true
+---
+
+We self-host Temporal. For two years it ran on a VM it shared with our
+notification stack: the server on the `temporalio/auto-setup` image, an
+Elasticsearch container powering workflow search, and configs hand-edited
+on the box, never committed anywhere. Temporal is good enough at its job
+that nothing forced us to touch any of this. In those two years the server
+fell nine minor versions behind.
+
+## Why now
+
+A security review flagged vulnerabilities in the VM's operating system, and
+the right fix was a fresh machine on a current image rather than more
+patches on the old one. That made the decision for us. Since everything had
+to come up on a new VM anyway, I decided to clear the version debt in the
+same window and bring Temporal up to the latest release.
+
+The catch: Temporal only supports upgrading one minor version at a time,
+each release with its own schema migrations. Nine versions behind means
+nine sequential upgrades, on a payments-critical system whose workflows run
+for months and cannot be drained first.
+
+## Guardrails first, autonomy second
+
+An AI agent (Claude, in my terminal) drove most of the migration. Before
+it touched anything real, I set the rules of engagement:
+
+- **Read-only discovery first.** The agent spent the first stretch mapping
+  the system: load balancer wiring, client env vars, baseline workflow
+  counts. Every answer went into a timestamped run log in git, which later
+  doubled as our SOC 2 change evidence.
+- **Fail-closed configs.** The new server config had no default database
+  target. Forget the env var and the server refuses to boot, so an agent
+  mistake could cost time but could not point staging work at prod. This
+  tripped twice during rehearsal, both times doing its job.
+- **A human owns destructive decisions.** Cutovers, terminations, and
+  design trade-offs needed my explicit sign-off, and every reversal went
+  into a decision log with its reasoning.
+- **Rehearse the whole thing on a clone of prod.** Not a plan review: every
+  config change, every version hop, with the server booted and checked at
+  each step.
+
+## What the rehearsal caught
+
+Four things, each of which would have been a production incident:
+
+1. **The migration design was impossible.** The plan relied on Temporal's
+   dual-visibility mode to move search data from Elasticsearch to Postgres.
+   Temporal rejects that cross-store pair on every version through 1.31,
+   which I confirmed in the source after the rehearsal server crash-looped
+   three times. I redesigned around a cold cutover with a backfill from
+   the core database.
+2. **v1.30 changed how config loads.** The server ignored our mounted
+   config file and fell back to an embedded template that assumed
+   Cassandra. Twenty minutes to fix in rehearsal; in production it would
+   have landed at hop 8 of 9.
+3. **The admin-tools image's default entrypoint is `sleep infinity`.** The
+   schema commands were disappearing into a container that never ran them.
+4. **`docker compose up -d` does not apply bind-mounted config edits.** The
+   change "deploys" and does not exist. Every restart in the runbook became
+   `--force-recreate`.
+
+Each finding became a runbook fix, and I reran the rehearsal until it came
+up clean.
+
+## Doing it
+
+Migration morning was procedural, which was the goal. Visibility cut over
+from Elasticsearch to Postgres with a backfill from the core database,
+which also recovered 109 live workflows that Elasticsearch had lost track
+of years ago. The VM swap was a deliberate stop-then-start with about five
+minutes of client-visible downtime; I had scrapped a cleverer
+zero-downtime design in favor of one whose rollback I could execute
+half-asleep. Then nine upgrades, schema first, each gated on version
+checks, error scans, workflow counts, and worker health before the next.
+The workflow count never moved, and application code did not change at all.
+
+The move also closed an old case. Temporal on the old box died on the 15th
+of every month, and someone restarted it by hand. `last reboot` on the old
+VM showed kernel version bumps every 15th at 04:00 UTC: our own OS patch
+schedule was rebooting the machine, and the compose file had no restart
+policy, so Temporal never came back up on its own. The new deployment has
+`restart: unless-stopped`.
+
+This month the new VM will patch itself, reboot, and come back up with
+nobody watching.
