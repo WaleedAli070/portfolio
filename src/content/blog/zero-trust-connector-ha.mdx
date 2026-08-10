@@ -1,0 +1,161 @@
+---
+title: 'High availability for p2p Zero Trust connectors'
+date: 2026-08-10
+tags: ['networking', 'infra', 'security']
+excerpt: 'In 2023 I proposed high availability for the connectors in a Zero Trust Access product: N replicas behind one identity, a coordinator picking targets from self-reported health, and failover reduced to re-running ICE. Reconstructed from the original whiteboard.'
+draft: true
+---
+
+import animation from '../assets/sc-ha-animate.svg?url';
+
+In May 2023 I was working on a peer-to-peer Zero Trust Access system. Its
+weakest point was the connector, the small agent you deploy inside a
+private network so that remote users can reach the services behind it.
+Each connector ran as a single instance. If that process died, every user
+tunneled through it lost access until someone restarted it. I proposed a
+high-availability design for the connectors, drew it up in Excalidraw for
+an internal presentation, and the project moved on. I recently dug the
+drawing out of my archive, and this post reconstructs the design from it.
+
+Three pieces of context first, since the design leans on all of them.
+
+## The building blocks
+
+**Zero Trust Access (ZTA).** The pitch is to stop punching holes in
+firewalls and stop putting users "on the network" with a VPN. Instead you
+place a connector next to your private services. The connector only makes
+outbound connections, so the network needs no open inbound ports, and
+users get access to specific services rather than a subnet.
+
+**WireGuard.** A minimal VPN protocol that lives in the Linux kernel. A
+peer is identified by a Curve25519 public key, configuration is a handful
+of lines, and the handshake runs over UDP. Two properties matter here:
+the protocol does not care what path the packets take, and a peer's
+identity is its key pair, nothing more.
+
+**ICE (RFC 8445).** The NAT traversal framework from the WebRTC world.
+Both sides gather candidate addresses: their local ones, their public
+ones as seen by a STUN server, and relayed ones from a TURN server. They
+exchange these candidate lists through some signaling channel, run
+connectivity checks across the pairs, and keep the best path that works.
+ICE finds the path; WireGuard secures it.
+
+## How a connection worked
+
+The system ran two agents: a **service connector** inside the private
+network and a **client** on the user's machine. Getting traffic flowing
+took three phases.
+
+**Registration.** Both agents registered with a central signaling
+service, each announcing its local and remote IDs. The signaling service
+existed to pass messages between agents that could not yet reach each
+other. In the 2.0 version of the product this became the **agent
+coordinator**, holding a persistent WebSocket to every agent instead of
+serving one-off requests.
+
+**Connection.** When a client wanted a service, the two agents ran ICE
+through the coordinator: gather candidates, exchange them, run
+connectivity checks. The winning candidate pair became the endpoints of a
+WireGuard tunnel directly between client and connector.
+
+**Traffic.** Data flowed over that p2p tunnel and nothing else. My
+original slide makes the point in block letters: the signaling service
+plays no role in the traffic flow. The coordinator is a control plane.
+Once the tunnel is up, you could turn the coordinator off and existing
+sessions would keep working.
+
+The original animation walks through all of this, plus the HA design
+below. The hand-drawn arrows distinguish registration, connection
+requests, health checks, and tunnels:
+
+<object
+  type="image/svg+xml"
+  data={animation}
+  style={{ width: '100%', aspectRatio: '4001.5 / 6138', borderRadius: '8px' }}
+  aria-label="Animated whiteboard walkthrough of the connector HA design"
+>
+  <img src={animation} alt="Whiteboard walkthrough of the connector HA design" style={{ width: '100%' }} />
+</object>
+
+## The proposal: replicas behind one identity
+
+The single point of failure was the connector process, so the obvious
+move was to run more than one. The design runs N connector instances
+that all present the same identity: the same connector ID and, in the
+first version of the sketch, the same WireGuard configuration. Each
+instance registers with the agent coordinator on its own WebSocket and
+reports its own health over that channel.
+
+When a client asks for the connector, the coordinator picks one healthy
+instance and signals with it. ICE runs against that instance, the tunnel
+lands on it, and the client never learns that the connector is plural.
+Because the instances share an identity, nothing in the client's
+configuration depends on which replica it reached.
+
+The choice happens per connection, which buys load distribution for
+free. In the steady-state frame of the drawing, four clients hold
+tunnels spread across three instances. The coordinator is doing crude
+load balancing just by picking among healthy replicas.
+
+## When an instance dies
+
+Kill instance one and two things happen independently.
+
+On the coordinator, the dead instance stops reporting health over its
+WebSocket, so the coordinator drops it from the candidate pool. No
+probing infrastructure, no external health checker; the instance's own
+silence removes it.
+
+On the client, the tunnel goes quiet. WireGuard gives you cheap failure
+detection here: handshakes stop completing and keepalives stop coming
+back. The client agent treats a dead peer as a signal to start over, so
+it sends a fresh connection request to the coordinator. The coordinator
+picks a surviving instance, ICE runs again, and the client's traffic
+resumes on a new tunnel. Clients on other instances never notice.
+
+Failover in this design is just the connection process repeated. There
+is no standby promotion, no virtual IP moving between machines, no load
+balancer in the data path. The client re-runs ICE against a different
+peer, and everything else follows from that.
+
+## The flaw in "same configs"
+
+The first version of the sketch says the replicas share the same
+WireGuard configuration, which means the same private key copied onto N
+machines. That version is honest about how to make the client side
+trivial, and it is a security problem. Steal the key from any one
+replica and you can impersonate the connector fleet from anywhere, and
+you cannot revoke that one machine without re-keying every replica and
+every client that knows the old public key.
+
+The fix keeps the shared identity one layer up. The connector ID stays
+common to the fleet, but each instance generates its own key pair and
+registers its own public key with the coordinator. The client already
+receives the chosen instance's ICE candidates through signaling, so the
+coordinator hands over that instance's public key in the same exchange.
+The client builds its WireGuard peer configuration per connection
+anyway; one more field costs nothing. Compromise a replica and you
+revoke one key by dropping one registration. The rest of the fleet keeps
+its identity.
+
+## When p2p fails
+
+ICE does not always find a direct path. Two sides behind symmetric NATs,
+or a network that blocks UDP hole punching, leave you with only the
+relayed candidates. The design kept a TURN-style relay for exactly this
+case: the tunnel endpoints become relay addresses and packets take one
+extra hop. The relay sees only WireGuard ciphertext, so it needs no
+trust beyond availability, and the rest of the design is unchanged. The
+coordinator still picks instances by health, and failover still means
+re-running the connection process.
+
+## What held up
+
+Three years on, the part I would defend hardest is the split between
+identity and path. WireGuard pins down who you are talking to; ICE is
+free to renegotiate how the packets get there. Once those are separate
+concerns, high availability needs nothing in the data plane. You do not
+need a proxy or a floating IP in front of the connectors, because every
+client already knows how to find a new path to the same identity. The
+coordinator stays a control plane you can afford to build simply,
+because the moment it has done its job, the packets no longer need it.
