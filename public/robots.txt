@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://waleedali.dev/sitemap-index.xml

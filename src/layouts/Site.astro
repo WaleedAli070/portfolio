@@ -10,9 +10,12 @@ interface Props {
   /** Terminal-style path shown in the titlebar/footer, e.g. "~/about". */
   path: string;
   description?: string;
+  ogType?: 'website' | 'article';
+  publishedDate?: Date;
+  tags?: string[];
 }
 
-const { title, path, description } = Astro.props;
+const { title, path, description, ogType, publishedDate, tags } = Astro.props;
 
 const NAV = [
   { label: 'about.me', href: '/about' },
@@ -26,7 +29,13 @@ const isActive = (href: string) => current === href || current.startsWith(`${hre
 const subPath = path.replace(/^~/, '');
 ---
 
-<Base title={title} description={description}>
+<Base
+  title={title}
+  description={description}
+  ogType={ogType}
+  publishedDate={publishedDate}
+  tags={tags}
+>
   <div class="screen">
     <canvas id="starfield" aria-hidden="true"></canvas>
     <div class="vignette" aria-hidden="true"></div>

@@ -13,3 +13,13 @@ export const SITE = {
   location: "Remote · UTC+5",
   version: "v2.0",
 } as const;
+
+// Schema.org Person, rendered via <JsonLd> on / and /about and embedded
+// as the author of each BlogPosting.
+export const PERSON_LD = {
+  "@type": "Person",
+  name: SITE.name,
+  jobTitle: SITE.roles,
+  url: "https://waleedali.dev",
+  sameAs: [SITE.github, SITE.linkedin],
+} as const;

@@ -5,7 +5,8 @@
 // the lunar-lander mini-game. Game logic lives in src/scripts/flightdeck/.
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
-import { SITE } from "../data/site";
+import JsonLd from "../components/JsonLd.astro";
+import { SITE, PERSON_LD } from "../data/site";
 import { EXPERIENCE } from "../data/career";
 import { COMPANY_PROJECTS, PERSONAL_PROJECTS } from "../data/projects";
 
@@ -164,6 +165,7 @@ const fdData = {
 ---
 
 <Base>
+  <JsonLd data={PERSON_LD} />
   <div class="deck" id="deck">
     <canvas class="game-canvas" id="fd-canvas"></canvas>
     <div class="scanlines"></div>

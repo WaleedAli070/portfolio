@@ -1,0 +1,12 @@
+---
+// Schema.org structured data as an ld+json script. Person lives on / and
+// /about; BlogPosting on each post (see blog/[...slug].astro).
+interface Props {
+  data: Record<string, unknown>;
+}
+
+const { data } = Astro.props;
+const json = JSON.stringify({ '@context': 'https://schema.org', ...data });
+---
+
+<script type="application/ld+json" is:inline set:html={json} />

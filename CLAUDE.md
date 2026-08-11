@@ -51,6 +51,15 @@ Fonts: JetBrains Mono (body/UI), Space Grotesk (headings).
 - `src/data/` — all real content: `site.ts` (identity/links),
   `career.ts` (bio/timeline/skills), `projects.ts` — content never lives
   in components
+- SEO: `Base.astro` emits canonical + Open Graph/Twitter meta for every
+  page (LinkedIn is the primary share target — `og:title` stays
+  unsuffixed); `src/pages/og/[...slug].png.ts` renders a 1200×627
+  terminal-styled share card per page/post at build (satori +
+  @resvg/resvg-js, build-only deps; fonts vendored in
+  `src/assets/fonts/`); `@astrojs/sitemap` + `public/robots.txt`;
+  JSON-LD via `src/components/JsonLd.astro` (Person on `/` + `/about`,
+  BlogPosting on posts). New posts get all of this for free from
+  frontmatter
 - `public/resume.pdf` — copy of the real resume; replace when it updates
 - Interactivity is small vanilla `<script>` blocks per page (modals via
   native `<dialog>`, blog filters, mailto contact form — swap to a
@@ -68,8 +77,8 @@ Fonts: JetBrains Mono (body/UI), Space Grotesk (headings).
   banner needed). `index.astro` fires the beacons (first control input =
   deck play, user-driven lander entry = lander play)
 - Status: content pages and the `/` flight-deck game (deck + lander)
-  match the design; play counters wired up; remaining: contact-form
-  Cloudflare Function, more blog posts
+  match the design; play counters wired up; SEO + social share cards
+  done; remaining: contact-form Cloudflare Function, more blog posts
 
 ## Principles
 

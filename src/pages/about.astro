@@ -1,11 +1,13 @@
 ---
 // About — bio, career timeline, skills (design/Site.dc.html, #about).
 import Site from "../layouts/Site.astro";
-import { SITE } from "../data/site";
+import JsonLd from "../components/JsonLd.astro";
+import { SITE, PERSON_LD } from "../data/site";
 import { BIO, EXPERIENCE, SKILLS } from "../data/career";
 ---
 
 <Site title="About" path="~/about">
+  <JsonLd data={PERSON_LD} />
   <div class="cmd">$ whoami<span class="cursor"></span></div>
   <h1>{SITE.name}</h1>
   <div class="roles">{SITE.roles}</div>

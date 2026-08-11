@@ -2,6 +2,8 @@
 // Blog post — rendered MDX with article prose styling
 // (design/Site.dc.html, post view).
 import Site from '../../layouts/Site.astro';
+import JsonLd from '../../components/JsonLd.astro';
+import { PERSON_LD } from '../../data/site';
 import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -15,9 +17,29 @@ const { Content } = await render(post);
 const READ_WPM = 220;
 const readTime = `${Math.max(1, Math.round((post.body ?? '').split(/\s+/).length / READ_WPM))} min read`;
 const date = post.data.date.toISOString().slice(0, 10);
+
+const postUrl = new URL(`/blog/${post.id}`, Astro.site);
+const POSTING_LD = {
+  '@type': 'BlogPosting',
+  headline: post.data.title,
+  description: post.data.excerpt,
+  datePublished: post.data.date.toISOString(),
+  keywords: post.data.tags.join(', '),
+  url: postUrl,
+  image: new URL(`/og/blog/${post.id}.png`, Astro.site),
+  author: PERSON_LD,
+};
 ---
 
-<Site title={post.data.title} path={`~/blog/${post.id}`} description={post.data.excerpt}>
+<Site
+  title={post.data.title}
+  path={`~/blog/${post.id}`}
+  description={post.data.excerpt}
+  ogType="article"
+  publishedDate={post.data.date}
+  tags={post.data.tags}
+>
+  <JsonLd data={POSTING_LD} />
   <a class="back" href="/blog">◂ all posts</a>
   <div class="meta">{date} &nbsp;·&nbsp; {readTime}</div>
   <h1>{post.data.title}</h1>
