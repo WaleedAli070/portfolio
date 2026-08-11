@@ -431,6 +431,27 @@ const fdData = {
     let landedCount = 0;
     let crashedCount = 0;
 
+    // anonymous play tallies — no cookies or IDs, at most one beacon per
+    // game per page load, production only (see worker/index.ts)
+    let interacted = false;
+    const counted = { deck: false, lander: false };
+    const countPlay = (game: "deck" | "lander") => {
+      if (counted[game] || !import.meta.env.PROD) return;
+      counted[game] = true;
+      navigator.sendBeacon(`/api/play?game=${game}`);
+    };
+    const markInteracted = () => {
+      interacted = true;
+      countPlay("deck");
+    };
+    const GAME_KEYS = new Set([
+      "arrowup", "arrowdown", "arrowleft", "arrowright",
+      "w", "a", "s", "d", " ",
+    ]);
+    window.addEventListener("keydown", (e) => {
+      if (GAME_KEYS.has(e.key.toLowerCase())) markInteracted();
+    });
+
     modeBtn.hidden = false;
     focusBtn.hidden = false;
     coordsEl.hidden = false;
@@ -520,12 +541,16 @@ const fdData = {
     });
 
     const setMode = (m: "deck" | "lander") => {
+      // only user-driven lander entries count — idle autopilot can descend
+      // into a planet on its own
+      if (m === "lander" && interacted) countPlay("lander");
       gameEl.dataset.mode = m;
       modeBtn.textContent = m === "lander" ? "▶ flight deck" : "▶ lander";
       resultEl.hidden = true;
       if (m === "lander") hideCard();
     };
     modeBtn.addEventListener("click", () => {
+      interacted = true;
       if (gameEl.dataset.mode === "lander") {
         fd.exitLander();
         setMode("deck");
@@ -554,6 +579,7 @@ const fdData = {
           "up" | "down" | "left" | "right" | "fire";
         btn.addEventListener("pointerdown", (e) => {
           e.preventDefault();
+          markInteracted();
           fd.setKey(dir, true);
         });
         for (const ev of [

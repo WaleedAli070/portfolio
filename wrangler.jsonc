@@ -1,10 +1,20 @@
-// Cloudflare Workers config — assets-only (pure static site, no worker code).
-// The contact-form function will add a "main" entry here when it's built.
+// Cloudflare Workers config — static assets plus a small worker for
+// /api/* (play counters now; the contact form will join it later).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "portfolio",
   "compatibility_date": "2026-07-25",
+  "main": "worker/index.ts",
   "assets": {
-    "directory": "./dist"
-  }
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "PLAYS",
+      // create with `npx wrangler kv namespace create PLAYS` and paste
+      // the id it prints — deploys fail while this placeholder remains
+      "id": "TODO_PASTE_KV_NAMESPACE_ID"
+    }
+  ]
 }
