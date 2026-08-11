@@ -1,0 +1,114 @@
+---
+title: 'Flight deck v2: joining two games, and counting who plays'
+date: 2026-08-11
+tags: ['canvas', 'frontend', 'meta', 'product']
+excerpt: 'I built two games into my home page and then watched people admire them like wallpaper. v2 makes the deck teach itself, joins the games into one world, and adds a cookie-free counter so I can find out whether anyone actually plays.'
+draft: false
+---
+
+[Shipping the flight deck](/blog/shipping-the-flight-deck) ended on a
+proud note: the home page was a game, and one of its nav nodes launched a
+second game. Then I started showing it to people.
+
+A friend opened it on a desktop, wiggled the mouse, admired the stars for
+a few seconds, and clicked the About link in the corner — like a
+civilized person visiting a normal website. My family did worse: they
+told me it looked great, and then asked what they were supposed to *do*
+with it. I had built two games and successfully hidden both of them. The
+deck read as a screensaver, and the lander lived behind a button nobody
+pressed. A stealth launch, in the worst possible sense.
+
+v2 is a handful of small fixes to that, plus a way to answer the question
+the whole episode raised: is anyone actually playing these?
+
+## The ship now flies itself
+
+The strongest hint that something is playable is watching it play. Arcade
+cabinets figured this out fifty years ago — the attract mode exists
+because a dark screen earns no quarters. So until you touch the controls,
+an autopilot now flies the ship in lazy arcs around the asteroid field,
+and a control hint fades in over the canvas. Your first key press or tap
+takes the stick, kills the hint, and the autopilot stays gone for the
+rest of the visit.
+
+One rule made this trickier than it sounds: nav nodes must not unlock
+while the autopilot is driving, or the site starts opening its own
+section cards while you watch — a portfolio reading itself to you.
+Discovery is gated on real input. The design mockup only counted the
+keyboard as real input, which would have left every phone visitor stuck
+in attract mode forever. Caught that one during the port, not before.
+
+## Planets are doorways now
+
+In v1 you reached the lander through a nav node, which is to say through
+a menu. v2 connects the games in-world instead: fly into one of the
+planets drifting behind the asteroid field and the screen irises down
+into the lander, with that planet's terrain waiting below. Land or crash,
+then thrust off the top of the screen and you climb back out into space,
+right where you left it. No button, no menu — the second game is now a
+place.
+
+The loop needed one guard. After you climb out, the deck drops your ship
+next to the planet you just left, and without a cooldown you would iris
+straight back down on the next frame. A 150-frame grace period lets you
+fly clear before planets become solid again. (An earlier build without it
+was a very effective infinite-lander trap.)
+
+## Focus mode, for the three people who came to play
+
+Most visitors treat the deck as a front door. A few treat it as the
+destination, and for them, pressing F (or the titlebar button) blurs away
+the site chrome: nav legend, hints, coordinates. The score panel, the
+lander telemetry, and the touch controls stay — hiding the instruments
+you fly by would make focus mode a punishment. A small pill stays on
+screen as the exit.
+
+The content pages got matching stitches: the red traffic light in the
+terminal titlebar now closes the page back to the deck, and a small
+"◂ flight deck" pill beside it does the same in words.
+
+## Is anyone actually playing?
+
+Every change above is a bet that visitors will play if the games invite
+them properly. I wanted the bet scored, and pageviews cannot score it:
+the game *is* the home page, and thanks to the autopilot it now plays
+itself, so a visit proves nothing about a visitor.
+
+The standard answer is an analytics suite, and I refuse to give it. As a
+user I spend half my browsing life (exaggerating, I know, but you get
+the point) dismissing cookie banners, and I am not inflicting one on you
+to count two arcade games. I have also spent enough years around
+security products to know how much data the average site collects
+against how little it uses — over-collection is the default, not the
+exception, and the only reliable way out is to not collect. And this
+site has a standing rule that has served it well: no dependency without
+a clear need. Google Analytics to increment two counters fails that test
+by a comfortable margin.
+
+The site already runs on Cloudflare Workers, so the whole apparatus is
+one small worker and a KV namespace. The page fires a beacon at exactly
+two moments:
+
+- **Deck play**: your first control input of the page load, keyboard or
+  touch. The autopilot does not count — watching is not playing.
+- **Lander play**: entering the lander after you have interacted, whether
+  through a planet descent or the mode button. The autopilot occasionally
+  drifts into a planet on its own; those descents are excluded too.
+
+Each fires at most once per page load, via `navigator.sendBeacon`, in
+production builds only. The worker validates the game name and bumps two
+KV keys: a running total and a per-day key like `deck:d:2026-08-11` that
+expires after sixty days. `GET /api/plays` returns the whole picture as
+JSON, which makes my analytics dashboard a URL I, or even you, can curl
+whenever the curiosity hits. KV writes are not atomic, so two
+simultaneous players can cost me an increment — at this site's traffic,
+that error is smaller than the noise I add by testing the game myself,
+so the counter stays simple on purpose.
+
+The tally is anonymous by construction: no cookies, no identifiers, no
+fingerprinting, no third-party script. Sixty lines of worker, twenty
+lines in the page, and nothing for a consent banner to confess.
+
+The counters went live today, so the scoreboard reads zero as I write
+this. Ask me in a month whether the deck or the lander wins. My money is
+on the lander — crashing is more fun than navigating.
