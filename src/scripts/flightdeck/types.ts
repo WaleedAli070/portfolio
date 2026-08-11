@@ -15,6 +15,8 @@ export interface FlightDeckConfig {
   asteroidCount: number;
   /** Ship acceleration per frame. */
   thrustPower: number;
+  /** Flying into a planet starts the lander mini-game. */
+  planetsLaunchLander: boolean;
 }
 
 export interface NodeDef {

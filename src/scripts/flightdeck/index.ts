@@ -27,6 +27,8 @@ export interface FlightDeckOptions {
   onLanderResult: (kind: 'landed' | 'crashed') => void;
   /** Fires when the flag is planted, ~3s after a clean landing. */
   onLanderCelebrate: () => void;
+  /** Fires when the game switches modes on its own (planet descent, climb-out ascent). */
+  onModeChange: (mode: 'deck' | 'lander') => void;
 }
 
 export interface FlightDeckApi {
@@ -61,6 +63,8 @@ export function createFlightDeck(opts: FlightDeckOptions): FlightDeckApi {
   let frame = 0;
   let raf = 0;
   let mode: 'deck' | 'lander' = 'deck';
+  // Hints and autopilot run until the pilot first touches the controls.
+  let userInput = false;
 
   const galaxy = new Galaxy();
   const deck = new Deck(opts.config, opts.nodes);
@@ -68,8 +72,18 @@ export function createFlightDeck(opts: FlightDeckOptions): FlightDeckApi {
 
   deck.onOpen = (key) => opts.onNodeOpen(key, deck.discoveredCount());
   deck.onScore = opts.onScore;
+  deck.onDescend = () => {
+    mode = 'lander';
+    lander.init(W, H);
+    opts.onModeChange('lander');
+  };
   lander.onResult = opts.onLanderResult;
   lander.onCelebrate = opts.onLanderCelebrate;
+  lander.onExit = () => {
+    mode = 'deck';
+    deck.resetAfterLander(W, H);
+    opts.onModeChange('deck');
+  };
 
   function resize(): void {
     const rect = canvas.getBoundingClientRect();
@@ -102,7 +116,7 @@ export function createFlightDeck(opts: FlightDeckOptions): FlightDeckApi {
       }
       return;
     }
-    deck.update(keys, W, H, frame);
+    deck.update(keys, W, H, frame, userInput, galaxy.planets);
     if (hud.coords) {
       hud.coords.textContent =
         'x:' +
@@ -119,8 +133,8 @@ export function createFlightDeck(opts: FlightDeckOptions): FlightDeckApi {
       ctx.translate((Math.random() - 0.5) * deck.shake, (Math.random() - 0.5) * deck.shake);
     }
     galaxy.draw(ctx, W, H, deck.ship.x - W / 2, deck.ship.y - H / 2, frame);
-    if (mode === 'lander') lander.draw(ctx, W, H);
-    else deck.draw(ctx, keys);
+    if (mode === 'lander') lander.draw(ctx, W, H, frame);
+    else deck.draw(ctx, keys, frame, galaxy.planets);
     ctx.restore();
   }
 
@@ -152,6 +166,7 @@ export function createFlightDeck(opts: FlightDeckOptions): FlightDeckApi {
     const dir = KEY_MAP[k];
     if (!dir) return;
     keys[dir] = down;
+    userInput = true;
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   }
   const onResize = () => resize();
@@ -173,6 +188,9 @@ export function createFlightDeck(opts: FlightDeckOptions): FlightDeckApi {
     },
     setKey(dir, down) {
       keys[dir] = down;
+      // touch counts as taking the controls too (the mockup only tracked
+      // the keyboard, which would leave touch pilots stuck on autopilot)
+      userInput = true;
     },
     startLander() {
       if (mode === 'lander') return;
@@ -181,6 +199,7 @@ export function createFlightDeck(opts: FlightDeckOptions): FlightDeckApi {
     },
     exitLander() {
       mode = 'deck';
+      deck.resetAfterLander(W, H);
     },
     retryLander() {
       lander.init(W, H);

@@ -1,9 +1,23 @@
 // Flight-deck sim: ship physics, bullets, splitting asteroids, particle
 // bursts, crash/respawn, and the five nav nodes that open section cards
-// on approach. Constants ported from design/Home.dc.html.
+// on approach. Until the pilot touches the controls the ship drifts
+// toward the next undiscovered node with fading control hints; flying
+// into a planet starts the lander via an iris descent transition.
+// Constants ported from design/Home.dc.html.
 
+import type { Planet } from './background';
+import { planetScreenPos } from './background';
 import type { FlightDeckConfig, Keys, NodeDef } from './types';
 import { burst, drawParticles, stepParticles, type Particle } from './particles';
+
+/** Stroked crater ellipse, in units of the asteroid radius. */
+interface Crater {
+  x: number;
+  y: number;
+  rx: number;
+  ry: number;
+  rot: number;
+}
 
 interface Asteroid {
   x: number;
@@ -14,6 +28,32 @@ interface Asteroid {
   rot: number;
   vr: number;
   verts: number[];
+  craters: Crater[];
+}
+
+function makeCraters(r: number): Crater[] {
+  const craters: Crater[] = [];
+  const n = (1 + Math.floor(Math.random() * 2)) + (r > 24 ? 1 : 0);
+  for (let i = 0; i < n; i++) {
+    // a few placement attempts so craters don't pile up on each other
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 0.12 + Math.random() * 0.33;
+      const cr = 0.09 + Math.random() * 0.09;
+      const x = Math.cos(ang) * dist;
+      const y = Math.sin(ang) * dist;
+      if (craters.some((c) => Math.hypot(c.x - x, c.y - y) < c.rx + cr + 0.04)) continue;
+      craters.push({
+        x,
+        y,
+        rx: cr,
+        ry: cr * (0.55 + Math.random() * 0.35),
+        rot: Math.random() * Math.PI,
+      });
+      break;
+    }
+  }
+  return craters;
 }
 
 interface Bullet {
@@ -41,6 +81,8 @@ export class Deck {
 
   onOpen: (key: string) => void = () => {};
   onScore: (score: number) => void = () => {};
+  /** Fires when the descent iris finishes: time to start the lander. */
+  onDescend: () => void = () => {};
 
   private score = 0;
   private crashing = false;
@@ -50,6 +92,14 @@ export class Deck {
   private asteroids: Asteroid[] = [];
   private particles: Particle[] = [];
   private fireCd = 0;
+  private W = 0;
+  private H = 0;
+  /** Control hints, 1 → 0 once the pilot takes over. */
+  private hintFade = 1;
+  /** Iris transition into the lander, anchored at the planet hit. */
+  private descent: { x: number; y: number; r: number; t: number } | null = null;
+  /** Frames before planets can trigger another descent (post-lander). */
+  private planetCd = 0;
 
   constructor(
     private config: FlightDeckConfig,
@@ -117,6 +167,7 @@ export class Deck {
       rot: Math.random() * Math.PI,
       vr: (Math.random() - 0.5) * 0.02,
       verts,
+      craters: makeCraters(r),
     });
   }
 
@@ -132,8 +183,60 @@ export class Deck {
     this.onScore(0);
   }
 
-  update(keys: Keys, W: number, H: number, frame: number): void {
+  /** Recenter the ship and hold planets off for a beat after the lander. */
+  resetAfterLander(W: number, H: number): void {
+    this.descent = null;
+    this.shake = 0;
+    this.planetCd = 150;
+    this.ship.x = W / 2;
+    this.ship.y = H / 2;
+    this.ship.vx = 0;
+    this.ship.vy = 0;
+  }
+
+  update(
+    keys: Keys,
+    W: number,
+    H: number,
+    frame: number,
+    userInput: boolean,
+    planets: Planet[]
+  ): void {
     const ship = this.ship;
+    this.W = W;
+    this.H = H;
+
+    if (this.planetCd > 0) this.planetCd--;
+    this.hintFade = userInput ? Math.max(0, this.hintFade - 0.035) : 1;
+
+    // Descent iris: freeze the sim while it closes over the planet.
+    // The impact shake still decays, else it stays frozen at full
+    // strength and vibrates the whole lander session.
+    if (this.descent) {
+      this.descent.t++;
+      this.descent.r += 26;
+      if (this.shake > 0) this.shake *= 0.85;
+      if (this.descent.t > 46) {
+        this.descent = null;
+        this.shake = 0;
+        this.onDescend();
+      }
+      return;
+    }
+
+    // Autopilot: drift toward the next undiscovered node until the pilot
+    // takes over (discovery itself stays gated on real input).
+    if (!userInput && !this.crashing) {
+      const tgt = this.nodes.filter((n) => !n.discovered)[0] || this.nodes[0];
+      if (tgt) {
+        const d = Math.hypot(tgt.x - ship.x, tgt.y - ship.y);
+        if (d > tgt.actR + 70) {
+          const ang = Math.atan2(tgt.y - ship.y, tgt.x - ship.x);
+          ship.vx += Math.cos(ang) * 0.075;
+          ship.vy += Math.sin(ang) * 0.075;
+        }
+      }
+    }
 
     if (this.crashing && --this.crashTimer <= 0) {
       this.crashing = false;
@@ -221,6 +324,7 @@ export class Deck {
                 rot: Math.random() * Math.PI,
                 vr: (Math.random() - 0.5) * 0.04,
                 verts,
+                craters: makeCraters(a.r * 0.58),
               });
             }
           }
@@ -257,11 +361,29 @@ export class Deck {
         const d = Math.hypot(ship.x - n.x, ship.y - n.y);
         if (d < n.actR && !n.inRange) {
           n.inRange = true;
-          n.discovered = true;
-          burst(this.particles, n.x, n.y, n.color, 20);
-          this.onOpen(n.key);
+          if (userInput) {
+            n.discovered = true;
+            burst(this.particles, n.x, n.y, n.color, 20);
+            this.onOpen(n.key);
+          }
         } else if (d > n.actR + 46) {
           n.inRange = false;
+        }
+      }
+    }
+
+    if (!this.crashing && this.planetCd <= 0 && this.config.planetsLaunchLander) {
+      const pxo = ship.x - W / 2;
+      const pyo = ship.y - H / 2;
+      for (const p of planets) {
+        const { x: sx, y: sy } = planetScreenPos(p, pxo, pyo);
+        const d = Math.hypot(ship.x - sx, ship.y - sy);
+        p.near = d < p.r + 150;
+        if (d < p.r + ship.r + 4) {
+          this.descent = { x: sx, y: sy, r: 0, t: 0 };
+          burst(this.particles, sx, sy, '#c98d63', 24);
+          this.shake = 6;
+          break;
         }
       }
     }
@@ -270,7 +392,7 @@ export class Deck {
     if (this.shake > 0) this.shake *= 0.85;
   }
 
-  draw(ctx: CanvasRenderingContext2D, keys: Keys): void {
+  draw(ctx: CanvasRenderingContext2D, keys: Keys, frame: number, planets: Planet[]): void {
     const ship = this.ship;
 
     for (const n of this.nodes) {
@@ -313,16 +435,32 @@ export class Deck {
       ctx.rotate(a.rot);
       ctx.shadowBlur = 6;
       ctx.shadowColor = 'rgba(120,150,190,0.5)';
-      ctx.beginPath();
-      for (let i = 0; i < a.verts.length; i++) {
+      // rounded silhouette: verts act as control points, the path runs
+      // through edge midpoints so corners come out smooth
+      const pts = a.verts.map((v, i) => {
         const ang = (i / a.verts.length) * Math.PI * 2;
-        const rr = a.r * a.verts[i];
-        const x = Math.cos(ang) * rr;
-        const y = Math.sin(ang) * rr;
-        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        return { x: Math.cos(ang) * a.r * v, y: Math.sin(ang) * a.r * v };
+      });
+      ctx.beginPath();
+      const last = pts[pts.length - 1];
+      ctx.moveTo((last.x + pts[0].x) / 2, (last.y + pts[0].y) / 2);
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const q = pts[(i + 1) % pts.length];
+        ctx.quadraticCurveTo(p.x, p.y, (p.x + q.x) / 2, (p.y + q.y) / 2);
       }
       ctx.closePath();
+      ctx.fillStyle = 'rgba(107,131,158,0.08)';
+      ctx.fill();
       ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = 1;
+      for (const c of a.craters) {
+        ctx.beginPath();
+        ctx.ellipse(c.x * a.r, c.y * a.r, c.rx * a.r, c.ry * a.r, c.rot, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
     }
     ctx.shadowBlur = 0;
@@ -388,5 +526,101 @@ export class Deck {
       ctx.stroke();
       ctx.restore();
     }
+
+    this.drawHints(ctx, frame, planets);
+    this.drawDescent(ctx);
+  }
+
+  private drawHints(ctx: CanvasRenderingContext2D, frame: number, planets: Planet[]): void {
+    const ship = this.ship;
+    const W = this.W;
+    const H = this.H;
+
+    for (const p of planets) {
+      if (!p.near || this.descent) continue;
+      const { x: sx, y: sy } = planetScreenPos(p, ship.x - W / 2, ship.y - H / 2);
+      ctx.save();
+      ctx.setLineDash([5, 7]);
+      ctx.lineDashOffset = -frame * 0.5;
+      ctx.strokeStyle = 'rgba(201,141,99,0.85)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(sx, sy, p.r + 22 + Math.sin(frame * 0.05) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#e8b58c';
+      ctx.font = '600 11.5px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▾ FLY IN TO LAND', sx, sy + p.r + 42);
+      ctx.restore();
+    }
+
+    const f = this.hintFade;
+    if (f <= 0 || this.crashing || this.descent) return;
+    ctx.save();
+
+    const tgt = this.nodes.filter((n) => !n.discovered)[0];
+    if (tgt) {
+      ctx.save();
+      ctx.globalAlpha = f * 0.22;
+      ctx.setLineDash([4, 9]);
+      ctx.lineDashOffset = -frame * 0.6;
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(ship.x, ship.y);
+      ctx.lineTo(tgt.x, tgt.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.globalAlpha = f * 0.5;
+    const rr = ship.r + 11 + Math.sin(frame * 0.06) * 2.5;
+    ctx.setLineDash([3, 7]);
+    ctx.lineDashOffset = frame * 0.5;
+    ctx.strokeStyle = '#6bf5c0';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(ship.x, ship.y, rr, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // sits above the nav-nodes legend (~90px tall at the bottom edge)
+    ctx.globalAlpha = f * 0.7;
+    ctx.fillStyle = '#8b9bb0';
+    ctx.font = '11.5px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('WASD to fly  ·  SPACE to fire', W / 2, H - 120);
+    ctx.restore();
+  }
+
+  private drawDescent(ctx: CanvasRenderingContext2D): void {
+    const d = this.descent;
+    if (!d) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, d.t / 30);
+    ctx.fillStyle = '#0b0f18';
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = Math.max(0, 1 - d.t / 46);
+    ctx.strokeStyle = '#c98d63';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#c98d63';
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, d.t / 16);
+    ctx.fillStyle = '#eaf2fb';
+    ctx.font = '600 15px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('INITIATING DESCENT', this.W / 2, this.H / 2 - 8);
+    ctx.fillStyle = '#8b9bb0';
+    ctx.font = '12px "JetBrains Mono", monospace';
+    ctx.fillText('switching to landing sequence', this.W / 2, this.H / 2 + 14);
+    ctx.restore();
   }
 }

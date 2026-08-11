@@ -24,7 +24,7 @@ interface NebulaBlob {
   c1: string;
 }
 
-interface Planet {
+export interface Planet {
   x: number;
   y: number;
   r: number;
@@ -33,13 +33,21 @@ interface Planet {
   ring: string | null;
   depth: number;
   vx: number;
+  /** Ship is close enough to show the "fly in to land" hint. */
+  near?: boolean;
+}
+
+/** Planet position on screen after ship parallax (px/py = ship offset from center). */
+export function planetScreenPos(p: Planet, px: number, py: number): { x: number; y: number } {
+  return { x: p.x - px * 0.02 * p.depth, y: p.y - py * 0.02 * p.depth };
 }
 
 export class Galaxy {
+  planets: Planet[] = [];
+
   private stars: Star[] = [];
   private deepStars: DeepStar[] = [];
   private nebula: NebulaBlob[] = [];
-  private planets: Planet[] = [];
   private deepRot = 0;
 
   init(W: number, H: number): void {
@@ -167,8 +175,7 @@ export class Galaxy {
   }
 
   private drawPlanet(ctx: CanvasRenderingContext2D, p: Planet, px: number, py: number): void {
-    const x = p.x - px * 0.02 * p.depth;
-    const y = p.y - py * 0.02 * p.depth;
+    const { x, y } = planetScreenPos(p, px, py);
     ctx.save();
     if (p.ring) {
       ctx.strokeStyle = p.ring;

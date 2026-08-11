@@ -70,8 +70,12 @@ export class Lander {
   onResult: (kind: 'landed' | 'crashed') => void = () => {};
   /** Fires once the flag is planted after a clean landing. */
   onCelebrate: () => void = () => {};
+  /** Fires after climbing out the top: return to the flight deck. */
+  onExit: () => void = () => {};
 
   private anim: LandingAnim | null = null;
+  /** "Leaving orbit" transition back to the deck. */
+  private ascent: { t: number } | null = null;
   private W = 0;
   private H = 0;
   private terrain: { x: number; y: number }[] = [];
@@ -135,6 +139,7 @@ export class Lander {
     this.particles = [];
     this.done = false;
     this.anim = null;
+    this.ascent = null;
     this.thrustFade = 0;
   }
 
@@ -153,6 +158,14 @@ export class Lander {
   update(keys: Keys): Telemetry {
     const r = this.rocket;
     const W = this.W;
+    if (this.ascent) {
+      this.ascent.t++;
+      if (this.ascent.t > 34) {
+        this.ascent = null;
+        this.onExit();
+      }
+      return { alt: 0, vy: r.vy, vx: r.vx, fuel: r.fuel };
+    }
     if (!this.done) {
       if (keys.left) r.angle -= 0.045;
       if (keys.right) r.angle += 0.045;
@@ -168,6 +181,11 @@ export class Lander {
       r.y += r.vy;
       if (r.x < 0) r.x = W;
       if (r.x > W) r.x = 0;
+      if (r.y + r.r < -30) {
+        this.ascent = { t: 0 };
+        burst(this.particles, r.x, 8, '#fbbf24', 20);
+        return { alt: 999, vy: r.vy, vx: r.vx, fuel: r.fuel };
+      }
       const gy = this.terrainYAt(r.x);
       if (r.y + r.r >= gy) {
         r.y = gy - r.r;
@@ -206,7 +224,7 @@ export class Lander {
     ctx.lineTo(t[t.length - 1].x, t[t.length - 1].y + dy);
   }
 
-  draw(ctx: CanvasRenderingContext2D, W: number, H: number): void {
+  draw(ctx: CanvasRenderingContext2D, W: number, H: number, frame: number): void {
     const r = this.rocket;
     if (!this.terrain.length) return;
 
@@ -326,6 +344,37 @@ export class Lander {
     ctx.restore();
 
     this.drawCelebration(ctx);
+
+    if (this.ascent) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, this.ascent.t / 12);
+      ctx.fillStyle = '#eaf2fb';
+      ctx.font = '600 15px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('LEAVING ORBIT', W / 2, H / 2 - 8);
+      ctx.fillStyle = '#8b9bb0';
+      ctx.font = '12px "JetBrains Mono", monospace';
+      ctx.fillText('returning to open space', W / 2, H / 2 + 14);
+      ctx.restore();
+    } else if (!this.done) {
+      // the way out: climb above this line to return to the flight deck
+      ctx.save();
+      ctx.globalAlpha = 0.5 + Math.sin(frame * 0.05) * 0.16;
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([6, 8]);
+      ctx.lineDashOffset = frame * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(0, 26);
+      ctx.lineTo(W, 26);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '11px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▴ climb above this line to fly back to space', W / 2, 18);
+      ctx.restore();
+    }
   }
 
   /** Draw a pixel sprite anchored at bottom-center; flip mirrors horizontally. */

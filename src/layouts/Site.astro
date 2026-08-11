@@ -22,6 +22,8 @@ const NAV = [
 ];
 const current = Astro.url.pathname.replace(/\/$/, '') || '/';
 const isActive = (href: string) => current === href || current.startsWith(`${href}/`);
+// The "~" in the prompt is its own link home; the rest of the path follows it.
+const subPath = path.replace(/^~/, '');
 ---
 
 <Base title={title} description={description}>
@@ -31,12 +33,14 @@ const isActive = (href: string) => current === href || current.startsWith(`${hre
 
     <div class="frame">
       <header class="titlebar">
-        <span class="light red"></span>
+        <a class="light close" href="/" title="Back to the flight deck">✕</a>
         <span class="light amber"></span>
         <span class="light green"></span>
-        <span class="prompt">pilot@portfolio: {path}</span>
+        <a class="deck-link" href="/"><span class="nudge">◂</span>flight deck</a>
+        <span class="prompt">
+          pilot@portfolio: <a class="home-tilde" href="/">~</a>{subPath}
+        </span>
         <span class="spacer"></span>
-        <a class="btn violet" href="/">◂ flight deck</a>
         <a class="btn green" href="/resume.pdf" download>wget resume.pdf</a>
       </header>
 
@@ -109,20 +113,73 @@ const isActive = (href: string) => current === href || current.startsWith(`${hre
     flex-shrink: 0;
   }
   .light {
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     display: inline-block;
     flex-shrink: 0;
   }
-  .light.red {
+  .light.close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: var(--red);
+    color: #3d0f0f;
+    font-size: 9px;
+    line-height: 1;
+    font-weight: 700;
+    opacity: 0.85;
+    transition:
+      opacity 0.15s,
+      box-shadow 0.15s;
+  }
+  .light.close:hover {
+    opacity: 1;
+    color: #3d0f0f;
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.7);
   }
   .light.amber {
     background: var(--amber);
+    opacity: 0.55;
   }
   .light.green {
     background: var(--green);
+    opacity: 0.55;
+  }
+  .deck-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 10px;
+    font-size: 12px;
+    color: var(--violet);
+    border: 1px solid rgba(167, 139, 250, 0.35);
+    background: rgba(167, 139, 250, 0.08);
+    padding: 5px 12px 5px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition:
+      background 0.18s,
+      border-color 0.18s;
+  }
+  .deck-link:hover {
+    background: rgba(167, 139, 250, 0.2);
+    border-color: rgba(167, 139, 250, 0.6);
+    color: var(--violet);
+  }
+  .nudge {
+    display: inline-block;
+    animation: nudgeLeft 1.8s ease-in-out infinite;
+  }
+  @keyframes nudgeLeft {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(-4px);
+    }
   }
   .prompt {
     margin-left: 8px;
@@ -133,6 +190,13 @@ const isActive = (href: string) => current === href || current.startsWith(`${hre
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .home-tilde {
+    color: var(--text-label);
+    transition: color 0.15s;
+  }
+  .home-tilde:hover {
+    color: var(--green);
+  }
   .spacer {
     flex: 1;
   }
@@ -142,15 +206,6 @@ const isActive = (href: string) => current === href || current.startsWith(`${hre
     border-radius: 6px;
     white-space: nowrap;
     transition: background 0.18s;
-  }
-  .btn.violet {
-    color: var(--violet);
-    border: 1px solid rgba(167, 139, 250, 0.4);
-    background: rgba(167, 139, 250, 0.08);
-  }
-  .btn.violet:hover {
-    background: rgba(167, 139, 250, 0.18);
-    color: var(--violet);
   }
   .btn.green {
     color: var(--green);

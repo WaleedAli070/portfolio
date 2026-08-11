@@ -29,8 +29,9 @@ relevant file (see `.claude/skills/implementing-from-designs/`):
 
 | Design file | Implements |
 | --- | --- |
-| `design/Home.dc.html` | `/` — flight-deck canvas game (boot, ship, asteroids, nav nodes, lander) |
-| `design/Site.dc.html` | `/about`, `/projects`, `/blog`, `/blog/[slug]`, `/contact` |
+| `design/v2/design/Home.dc.html` | `/` — flight-deck canvas game (boot, ship, asteroids, nav nodes, lander, focus mode, idle autopilot + hints, planet descent, climb-out ascent) |
+| `design/v2/design/Site.dc.html` | `/about`, `/projects`, `/blog`, `/blog/[slug]`, `/contact` |
+| `design/Home.dc.html`, `design/Site.dc.html` | v1 — superseded by `design/v2/`, reference only |
 | `design/uploads/portfolio.html` | earlier draft — superseded, reference only |
 
 Design tokens: bg `#070b12` · text `#d7e2f0` · green `#34d399` ·

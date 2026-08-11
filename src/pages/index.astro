@@ -58,7 +58,12 @@ const NODES = [
 ];
 
 // Tunables from the design's data-props.
-const CONFIG = { lethalAsteroids: true, asteroidCount: 5, thrustPower: 0.34 };
+const CONFIG = {
+  lethalAsteroids: true,
+  asteroidCount: 5,
+  thrustPower: 0.34,
+  planetsLaunchLander: true,
+};
 
 const posts = (await getCollection("blog", ({ data }) => !data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
@@ -171,6 +176,9 @@ const fdData = {
         <span class="light green"></span>
         <span class="prompt">pilot@flight-deck: ~/home</span>
         <span class="spacer"></span>
+        <button class="btn btn-focus" id="focus-btn" hidden
+          >⛶ focus mode&nbsp;<span class="focus-key">F</span></button
+        >
         <button class="btn btn-violet" id="mode-btn" hidden>▶ lander</button>
         <a class="btn" href="/resume.pdf" download>wget resume.pdf</a>
       </header>
@@ -185,7 +193,7 @@ const fdData = {
             <p class="blurb">
               ~10 years across the stack — IoT, AV simulation, zero-trust
               networking, fintech infrastructure. I build platforms that stay
-              calm under pressure, and lead the teams that run them.
+              calm under pressure, and manage the teams that run them.
             </p>
           </div>
 
@@ -215,16 +223,8 @@ const fdData = {
               <p class="blurb">
                 ~10 years across the stack — IoT, AV simulation, zero-trust
                 networking, fintech infrastructure. I build platforms that stay
-                calm under pressure.
+                calm under pressure, and manage the teams that run them.
               </p>
-              <div class="keys-hint">
-                <span class="k-label">fly:</span>
-                <span class="k-val">WASD / ↑ ↓ ← →</span>
-                &nbsp;·&nbsp;
-                <span class="k-label">fire:</span>
-                <span class="k-val">SPACE</span><br />
-                <span>explore the nodes to open each section</span>
-              </div>
             </div>
           </div>
 
@@ -339,8 +339,8 @@ const fdData = {
                 </div>
               </div>
               <div class="lander-hint">
-                ↑ / W thrust &nbsp;·&nbsp; ← → rotate &nbsp;·&nbsp; set her down
-                soft on the pad
+                ↑ / W thrust &nbsp;·&nbsp; ← → rotate &nbsp;·&nbsp; land soft on
+                the pad, or climb up to return to space
               </div>
             </div>
             <div class="lander-result" id="lander-result" hidden>
@@ -350,7 +350,7 @@ const fdData = {
                 <div class="result-actions">
                   <button class="retry-btn" id="retry-lander">retry</button>
                   <button class="exit-btn" id="exit-lander-2"
-                    >flight deck</button
+                    >▴ back to space</button
                   >
                 </div>
               </div>
@@ -365,6 +365,12 @@ const fdData = {
         <span>{SITE.version} — flight deck</span>
       </footer>
     </div>
+
+    <button class="focus-pill" id="focus-pill" hidden>
+      <span class="pill-dot"></span>focus mode — press&nbsp;<span
+        class="pill-key">F</span
+      >&nbsp;or click to exit
+    </button>
 
     <div class="boot" id="boot" hidden>
       <div class="boot-inner">
@@ -409,6 +415,9 @@ const fdData = {
     const scoreEl = $("score");
     const foundEl = $("found");
     const modeBtn = $("mode-btn");
+    const focusBtn = $("focus-btn");
+    const focusPill = $("focus-pill");
+    const chromeEl = deckEl.querySelector<HTMLElement>(".chrome")!;
     const coordsEl = $("coords");
     const cardOverlay = $("card-overlay");
     const cards = Array.from(
@@ -423,6 +432,7 @@ const fdData = {
     let crashedCount = 0;
 
     modeBtn.hidden = false;
+    focusBtn.hidden = false;
     coordsEl.hidden = false;
 
     const showCard = (key: string) => {
@@ -479,6 +489,8 @@ const fdData = {
       onLanderCelebrate: () => {
         resultEl.hidden = false;
       },
+      // the game switches modes on its own: planet descent, climb-out ascent
+      onModeChange: (m) => setMode(m),
     });
 
     for (const item of legendItems) {
@@ -487,8 +499,24 @@ const fdData = {
     for (const c of cards) {
       c.querySelector(".card-close")?.addEventListener("click", hideCard);
     }
+
+    // focus mode: blur the HUD chrome so only the game remains
+    let focus = false;
+    const toggleFocus = () => {
+      focus = !focus;
+      chromeEl.classList.toggle("focus", focus);
+      focusPill.hidden = !focus;
+      if (focus) hideCard();
+    };
+    focusBtn.addEventListener("click", toggleFocus);
+    focusPill.addEventListener("click", toggleFocus);
+
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !cardOverlay.hidden) hideCard();
+      if (e.key.toLowerCase() === "f") toggleFocus();
+      if (e.key === "Escape") {
+        if (focus) toggleFocus();
+        else if (!cardOverlay.hidden) hideCard();
+      }
     });
 
     const setMode = (m: "deck" | "lander") => {
@@ -641,6 +669,34 @@ const fdData = {
     pointer-events: none;
   }
 
+  /* Focus mode dims the ambient chrome only — gameplay HUD (score panel,
+     lander telemetry + result, touch controls, section cards) stays. */
+  .titlebar,
+  .statusbar,
+  .game .intro,
+  .game .nodes {
+    transition:
+      filter 0.35s ease,
+      opacity 0.35s ease;
+  }
+  .chrome.focus .titlebar,
+  .chrome.focus .statusbar,
+  .chrome.focus .intro,
+  .chrome.focus .nodes {
+    filter: blur(7px);
+    opacity: 0.22;
+  }
+  .chrome.focus .titlebar,
+  .chrome.focus .statusbar,
+  .chrome.focus .intro,
+  .chrome.focus .nodes,
+  .chrome.focus .titlebar *,
+  .chrome.focus .statusbar *,
+  .chrome.focus .intro *,
+  .chrome.focus .nodes * {
+    pointer-events: none !important;
+  }
+
   /* ---- titlebar / statusbar ---- */
 
   .titlebar {
@@ -702,6 +758,72 @@ const fdData = {
   .btn-violet:hover {
     background: rgba(167, 139, 250, 0.18);
     color: var(--violet);
+  }
+  .btn-focus {
+    color: #c6d3e3;
+    border-color: #2c4058;
+    background: rgba(15, 23, 36, 0.7);
+    transition:
+      border-color 0.18s,
+      color 0.18s;
+  }
+  .btn-focus:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(15, 23, 36, 0.7);
+  }
+  .focus-key {
+    color: var(--text-ghost);
+  }
+
+  /* ---- focus-mode exit pill ---- */
+
+  .focus-pill {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: #c6d3e3;
+    background: rgba(9, 14, 22, 0.72);
+    border: 1px solid #2c4058;
+    padding: 8px 15px;
+    border-radius: 20px;
+    backdrop-filter: blur(8px);
+    animation: pillIn 0.3s both;
+    transition:
+      border-color 0.18s,
+      color 0.18s;
+  }
+  .focus-pill:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+  .pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulseDot 2s ease-in-out infinite;
+  }
+  .pill-key {
+    color: var(--green);
+  }
+  @keyframes pillIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -8px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
   }
 
   .statusbar {
@@ -781,19 +903,6 @@ const fdData = {
     max-width: 38ch;
     text-wrap: pretty;
   }
-  .keys-hint {
-    margin-top: 18px;
-    font-size: 11.5px;
-    color: var(--text-faint);
-    line-height: 1.9;
-  }
-  .k-label {
-    color: var(--text-muted);
-  }
-  .k-val {
-    color: #c6d3e3;
-  }
-
   /* ---- nav nodes legend (shared fallback + game) ---- */
 
   .nodes-label {
@@ -1189,9 +1298,9 @@ const fdData = {
     background: rgba(52, 211, 153, 0.1);
   }
   .exit-btn {
-    color: #c6d3e3;
-    border: 1px solid #2c4058;
-    background: transparent;
+    color: var(--violet);
+    border: 1px solid rgba(167, 139, 250, 0.45);
+    background: rgba(167, 139, 250, 0.1);
   }
 
   /* ---- boot screen ---- */

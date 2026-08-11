@@ -10,14 +10,18 @@ or delete it). Always open the relevant mockup before building UI.
 
 ## Route → design map
 
+Current designs live in `design/v2/design/` (v1 files at the top of
+`design/` are superseded — reference only). `design/v2/README.md` is the
+full handoff doc: tokens, typography, and interaction specs.
+
 | Route | Design | Notes |
 |---|---|---|
-| `/` | `design/Home.dc.html` | Flight deck: boot sequence, flyable ship (WASD/arrows + space), asteroids, 5 nav nodes opening glass cards, lunar-lander mini-game, touch controls on coarse pointers |
-| `/about` | `design/Site.dc.html` (`#about`) | Bio, career timeline, skills chips |
-| `/projects` | `design/Site.dc.html` (`#projects`) | Company (NDA-badged) + personal cards, detail modal |
-| `/blog` | `design/Site.dc.html` (`#blog`) | Post list, tag pills + year select filters |
-| `/blog/[slug]` | `design/Site.dc.html` (post view) | Rendered MDX article |
-| `/contact` | `design/Site.dc.html` (`#contact`) | Form + direct-channel links |
+| `/` | `design/v2/design/Home.dc.html` | Flight deck: boot sequence, flyable ship (WASD/arrows + space), asteroids, 5 nav nodes opening glass cards, lunar-lander mini-game, touch controls on coarse pointers. v2: focus mode (F / titlebar button / exit pill), idle autopilot + fading control hints until first input, flying into a planet irises into the lander, climbing off the top of the lander returns to space |
+| `/about` | `design/v2/design/Site.dc.html` (`#about`) | Bio, career timeline, skills chips |
+| `/projects` | `design/v2/design/Site.dc.html` (`#projects`) | Company (NDA-badged) + personal cards, detail modal |
+| `/blog` | `design/v2/design/Site.dc.html` (`#blog`) | Post list, tag pills + year select filters |
+| `/blog/[slug]` | `design/v2/design/Site.dc.html` (post view) | Rendered MDX article |
+| `/contact` | `design/v2/design/Site.dc.html` (`#contact`) | Form + direct-channel links |
 
 The mockups are single-page with hash routing; the real site uses one
 Astro route per section. Shared terminal chrome (titlebar with traffic
