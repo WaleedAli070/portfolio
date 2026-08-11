@@ -12,9 +12,7 @@
   "kv_namespaces": [
     {
       "binding": "PLAYS",
-      // create with `npx wrangler kv namespace create PLAYS` and paste
-      // the id it prints — deploys fail while this placeholder remains
-      "id": "TODO_PASTE_KV_NAMESPACE_ID"
+      "id": "37e39e7235764af2a77d607b030f185b"
     }
   ]
 }
