@@ -10,8 +10,8 @@ interactive canvas "flight deck" home and calm, readable content pages.
 - Canvas games are **vanilla canvas — no game/animation libraries**
 - Hosting: Cloudflare Workers static assets (`wrangler.jsonc`), free plan
   only — auto-deploys from `main` via Cloudflare's git integration.
-  Static requests are unlimited; only future Functions (contact form)
-  count against the 100k/day free tier.
+  Static requests are unlimited; only worker routes (`/api/*` play
+  counters, future contact form) count against the 100k/day free tier.
 
 ## Commands
 
@@ -62,9 +62,14 @@ Fonts: JetBrains Mono (body/UI), Space Grotesk (headings).
   display refresh rate. No-JS and `prefers-reduced-motion` visitors get
   the static `.fallback` layer; boot sequence plays once per tab session
   (`sessionStorage`)
+- `worker/index.ts` — the Workers script behind `/api/*`: anonymous play
+  counters (`POST /api/play`, `GET /api/plays`) in the `PLAYS` KV
+  namespace. No cookies/IDs by design — keep it that way (no consent
+  banner needed). `index.astro` fires the beacons (first control input =
+  deck play, user-driven lander entry = lander play)
 - Status: content pages and the `/` flight-deck game (deck + lander)
-  match the design; remaining: contact-form Cloudflare Function, more
-  blog posts
+  match the design; play counters wired up; remaining: contact-form
+  Cloudflare Function, more blog posts
 
 ## Principles
 
