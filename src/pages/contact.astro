@@ -1,6 +1,7 @@
 ---
-// Contact — form + direct channels (design/Site.dc.html, #contact).
-// The form composes a mailto: draft until the Cloudflare Function exists.
+// Contact — form + direct channels (design/v2/design/Site.dc.html, #contact).
+// The form POSTs to the worker's /api/contact, which emails the message
+// via Email Routing; on failure it falls back to a mailto link.
 import Site from "../layouts/Site.astro";
 import { SITE } from "../data/site";
 
@@ -59,6 +60,26 @@ const channels = [
           />
         </div>
         <div class="field">
+          <label for="f-email">email</label>
+          <input
+            id="f-email"
+            name="email"
+            required
+            type="email"
+            placeholder="ada@analytical.engine"
+          />
+        </div>
+        <div class="field hp" aria-hidden="true">
+          <label for="f-website">website</label>
+          <input
+            id="f-website"
+            name="website"
+            type="text"
+            tabindex="-1"
+            autocomplete="off"
+          />
+        </div>
+        <div class="field">
           <label for="f-subject">subject</label>
           <input
             id="f-subject"
@@ -76,10 +97,18 @@ const channels = [
             placeholder="tell me what you're building..."></textarea>
         </div>
         <button type="submit">send message →</button>
-        <div class="note">
-          Opens a draft in your mail client — or just email me directly.
+        <div class="note" id="contact-note">
+          Delivered straight to my inbox — or just email me directly.
         </div>
       </form>
+      <div class="sent" id="contact-sent" hidden>
+        <div class="sent-check">✓</div>
+        <div class="sent-title">message queued</div>
+        <div class="sent-sub">
+          Transmission logged. I'll get back to you shortly.
+        </div>
+        <button type="button" id="contact-reset">send another</button>
+      </div>
     </div>
 
     <div class="channels">
@@ -192,6 +221,61 @@ const channels = [
     color: var(--text-ghost);
     line-height: 1.5;
   }
+  .note.error {
+    color: var(--amber);
+  }
+  .note.error a {
+    color: var(--amber);
+    text-decoration: underline;
+  }
+
+  /* Honeypot — visually gone, still in the DOM for bots to fill. */
+  .hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  form[hidden] {
+    display: none;
+  }
+  .sent {
+    text-align: center;
+    padding: 24px 8px;
+  }
+  .sent-check {
+    font-size: 34px;
+    color: var(--green);
+    margin-bottom: 12px;
+  }
+  .sent-title {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 6px;
+  }
+  .sent-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+  #contact-reset {
+    cursor: pointer;
+    display: inline-block;
+    font-size: 12.5px;
+    color: var(--cyan);
+    background: none;
+    border: 1px solid rgba(34, 211, 238, 0.4);
+    padding: 8px 16px;
+    border-radius: 7px;
+    transition: background 0.15s;
+  }
+  #contact-reset:hover {
+    background: rgba(34, 211, 238, 0.1);
+  }
 
   .channels {
     display: flex;
@@ -240,12 +324,39 @@ const channels = [
 
 <script>
   const form = document.getElementById("contact-form") as HTMLFormElement;
-  form.addEventListener("submit", (e) => {
+  const sent = document.getElementById("contact-sent") as HTMLElement;
+  const note = document.getElementById("contact-note") as HTMLElement;
+  const reset = document.getElementById("contact-reset") as HTMLButtonElement;
+  const submit = form.querySelector("button[type=submit]") as HTMLButtonElement;
+  const defaultNote = note.textContent;
+
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const data = new FormData(form);
-    const subject = String(data.get("subject") || "Hello from your portfolio");
-    const body = `${data.get("message")}\n\n— ${data.get("name")}`;
-    const email = form.dataset.email;
-    location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    submit.disabled = true;
+    submit.textContent = "transmitting...";
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      form.reset();
+      note.classList.remove("error");
+      note.textContent = defaultNote;
+      form.hidden = true;
+      sent.hidden = false;
+    } catch {
+      note.classList.add("error");
+      note.innerHTML = `transmission failed — try again or <a href="mailto:${form.dataset.email}">email me directly</a>.`;
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "send message →";
+    }
+  });
+
+  reset.addEventListener("click", () => {
+    sent.hidden = true;
+    form.hidden = false;
   });
 </script>

@@ -62,8 +62,7 @@ Fonts: JetBrains Mono (body/UI), Space Grotesk (headings).
   frontmatter
 - `public/resume.pdf` — copy of the real resume; replace when it updates
 - Interactivity is small vanilla `<script>` blocks per page (modals via
-  native `<dialog>`, blog filters, mailto contact form — swap to a
-  Cloudflare Function later)
+  native `<dialog>`, blog filters, contact form fetch)
 - `src/scripts/flightdeck/` — the `/` canvas game as plain-TS modules
   (`background`/`deck`/`lander`/`particles` + controller in `index.ts`);
   `index.astro` owns all DOM (HUD, cards, boot, touch) and wires it via
@@ -73,12 +72,16 @@ Fonts: JetBrains Mono (body/UI), Space Grotesk (headings).
   (`sessionStorage`)
 - `worker/index.ts` — the Workers script behind `/api/*`: anonymous play
   counters (`POST /api/play`, `GET /api/plays`) in the `PLAYS` KV
-  namespace. No cookies/IDs by design — keep it that way (no consent
-  banner needed). `index.astro` fires the beacons (first control input =
-  deck play, user-driven lander entry = lander play)
+  namespace, and the contact form (`POST /api/contact` → email via the
+  `send_email` binding + `mimetext/browser`; honeypot anti-spam, nothing
+  stored). Requires Email Routing enabled on the domain with the
+  destination address verified — deploys fail otherwise. No cookies/IDs
+  by design — keep it that way (no consent banner needed). `index.astro`
+  fires the beacons (first control input = deck play, user-driven lander
+  entry = lander play)
 - Status: content pages and the `/` flight-deck game (deck + lander)
-  match the design; play counters wired up; SEO + social share cards
-  done; remaining: contact-form Cloudflare Function, more blog posts
+  match the design; play counters and contact form wired up; SEO +
+  social share cards done; remaining: more blog posts
 
 ## Principles
 
