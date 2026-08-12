@@ -14,5 +14,13 @@
       "binding": "PLAYS",
       "id": "37e39e7235764af2a77d607b030f185b"
     }
+  ],
+  // Contact form delivery — requires Email Routing enabled on the domain
+  // and this address verified as a destination in the Cloudflare dashboard.
+  "send_email": [
+    {
+      "name": "CONTACT_EMAIL",
+      "destination_address": "waleedali070@gmail.com"
+    }
   ]
 }
