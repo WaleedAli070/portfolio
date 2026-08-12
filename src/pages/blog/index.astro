@@ -160,6 +160,11 @@ const years = [...new Set(posts.map((p) => String(p.data.date.getFullYear())))].
       transform 0.2s;
     color: inherit;
   }
+  /* `.post`'s author `display` would otherwise beat the UA `[hidden]` rule,
+     so filtered-out posts stay visible. */
+  .post[hidden] {
+    display: none;
+  }
   .post:hover {
     border-color: rgba(34, 211, 238, 0.4);
     transform: translateY(-2px);
