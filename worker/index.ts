@@ -67,7 +67,9 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
 
   try {
     await env.CONTACT_EMAIL.send(new EmailMessage(CONTACT_FROM, CONTACT_TO, mime.asRaw()));
-  } catch {
+  } catch (err) {
+    // Surfaced in `wrangler tail` / dashboard logs — the response stays generic.
+    console.error("contact send failed:", err instanceof Error ? err.message : err);
     return Response.json({ error: "send failed" }, { status: 502 });
   }
   return new Response(null, { status: 204 });
